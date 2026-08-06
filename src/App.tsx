@@ -73,6 +73,7 @@ import SupabaseLoginModal from './components/SupabaseLoginModal';
 import { supabase } from './lib/supabase';
 import { handleStripeCheckout } from './lib/stripe';
 import { sanitizeText, rateLimiter } from './lib/security';
+import { getMediaUrl } from './lib/storage';
 
 const STORAGE_KEY = 'youtuber_pro_academy_progress';
 const LOGIN_KEY = 'youtuber_pro_academy_logged';
@@ -95,7 +96,7 @@ const DEFAULT_PROFILE: UserProfile = {
   phone: '(11) 98765-4321',
   password: '••••••••',
   confirmPassword: '••••••••',
-  avatar: '/img/bg/bg-ytpro-danrocha.webp'
+  avatar: getMediaUrl('banners/hero_01.webp')
 };
 
 const DEFAULT_PROGRESS: UserProgress = {
@@ -109,30 +110,20 @@ const DEFAULT_PROGRESS: UserProgress = {
   activeTab: {}
 };
 
-const bgGlob = (import.meta as any).glob('/public/img/bg/*.{webm,WEBM,webp,png,jpg,jpeg,svg,WEBP,PNG,JPG,JPEG,SVG}', { eager: true });
-const detectedBgMedia = Object.keys(bgGlob)
-  .filter(path => !path.toLowerCase().endsWith('.md'))
-  .map(path => path.replace(/^\/public/, ''));
+const BG_VIDEOS = [
+  getMediaUrl('bg/02.webm')
+];
 
-const detectedWebmVideos = detectedBgMedia.filter(path => path.toLowerCase().endsWith('.webm'));
-const detectedImages = detectedBgMedia.filter(path => !path.toLowerCase().endsWith('.webm'));
+const BG_IMAGES = [
+  getMediaUrl('bg/02.webp')
+];
 
-const BG_VIDEOS = detectedWebmVideos.length > 0 
-  ? detectedWebmVideos 
-  : ['/img/bg/02.webm'];
-
-const BG_IMAGES = detectedImages.length > 0 
-  ? detectedImages 
-  : (detectedWebmVideos.length > 0 ? detectedWebmVideos : ['/img/bg/02.webp']);
-
-const heroGlob = (import.meta as any).glob('/public/img/banners/hero_*.{webp,png,jpg,jpeg,svg,WEBP,PNG,JPG,JPEG,SVG}', { eager: true });
-const detectedHeroImages = Object.keys(heroGlob)
-  .filter(path => !path.toLowerCase().endsWith('.md'))
-  .map(path => path.replace(/^\/public/, ''));
-
-const HERO_IMAGES = detectedHeroImages.length > 0 
-  ? detectedHeroImages 
-  : ['/img/banners/hero_01.webp'];
+const HERO_IMAGES = [
+  getMediaUrl('banners/hero_01.webp'),
+  getMediaUrl('banners/hero_02.webp'),
+  getMediaUrl('banners/hero_03.webp'),
+  getMediaUrl('banners/hero_04.webp')
+];
 
 function shuffleIndices(length: number): number[] {
   const indices = Array.from({ length }, (_, i) => i);
