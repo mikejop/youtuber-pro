@@ -7,3 +7,22 @@ datasource db {
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
+
+model Purchase {
+  id               String   @id @default(uuid())
+  stripeSessionId  String   @unique
+  stripeCustomerId String?
+  customerEmail    String
+  customerName     String?
+  productId        String   // prod_V1O7wwjRIcsTrN
+  priceId          String   // price_...
+  amountTotal      Int      // In cents (e.g. 6700, 9900)
+  currency         String   @default("brl")
+  paymentStatus    String   @default("paid")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([customerEmail])
+  @@index([stripeSessionId])
+  @@map("purchases")
+}
