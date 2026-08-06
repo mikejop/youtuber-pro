@@ -5,9 +5,9 @@ import { defineConfig } from 'vite';
 
 export default defineConfig(() => {
   return {
-    base: '/ytpro/',
+    base: '/',
     build: {
-      outDir: 'dist/ytpro',
+      outDir: 'dist',
       emptyOutDir: true,
     },
     plugins: [react(), tailwindcss()],
