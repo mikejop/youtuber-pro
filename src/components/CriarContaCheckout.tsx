@@ -447,7 +447,7 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
             <div className="space-y-4 pt-4 border-t border-neutral-800/80">
               <h3 className="text-sm font-bold uppercase tracking-wider text-neutral-300 flex items-center space-x-2.5">
                 <CreditCard className="w-4 h-4 text-[#0071e3]" />
-                <span>Dados de Pagamento (Stripe API Direta)</span>
+                <span>Dados de Pagamento</span>
               </h3>
 
               {clientSecret ? (
