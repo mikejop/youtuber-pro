@@ -70,7 +70,7 @@ import DefinirSenha from './components/DefinirSenha';
 import EsqueciSenha from './components/EsqueciSenha';
 import Preloader from './components/Preloader';
 import SupabaseLoginModal from './components/SupabaseLoginModal';
-import RequireSubscription from './components/RequireSubscription';
+import StripeCheckoutModal from './components/StripeCheckoutModal';
 import { supabase } from './lib/supabase';
 import { handleStripeCheckout } from './lib/stripe';
 import { sanitizeText, rateLimiter } from './lib/security';
@@ -175,8 +175,11 @@ export default function App() {
   const [isExclusiveModalOpen, setIsExclusiveModalOpen] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [isSupabaseLoginOpen, setIsSupabaseLoginOpen] = useState<boolean>(false);
+  const [isPaidUser, setIsPaidUser] = useState<boolean>(false);
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState<boolean>(false);
+  const [checkoutModalInfo, setCheckoutModalInfo] = useState<{ title?: string; description?: string }>({});
   const [copiedChallengeId, setCopiedChallengeId] = useState<string | null>(null);
-  
+
   // Route state for /definir-senha and /esqueci-senha
   const [currentRoute, setCurrentRoute] = useState<string>(() => {
     const path = window.location.pathname.toLowerCase();
@@ -294,6 +297,26 @@ export default function App() {
       setIsSidebarExpanded(false);
     }
 
+    // Helper para verificar status de assinante no Supabase
+    const checkSubscriptionStatus = async (userId: string, email: string) => {
+      try {
+        const { data: subData } = await supabase
+          .from('subscribers')
+          .select('status')
+          .or(`id.eq.${userId},email.eq.${email}`)
+          .maybeSingle();
+
+        if (subData?.status === 'active') {
+          setIsPaidUser(true);
+        } else {
+          setIsPaidUser(false);
+        }
+      } catch (e) {
+        console.warn('Erro ao verificar assinatura:', e);
+        setIsPaidUser(false);
+      }
+    };
+
     // Check Supabase Auth active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -301,7 +324,10 @@ export default function App() {
         localStorage.setItem(LOGIN_KEY, 'true');
         if (session.user.email) {
           setUserProfile(prev => ({ ...prev, email: session.user.email || prev.email }));
+          checkSubscriptionStatus(session.user.id, session.user.email);
         }
+      } else {
+        setIsPaidUser(false);
       }
     });
 
@@ -311,9 +337,11 @@ export default function App() {
         localStorage.setItem(LOGIN_KEY, 'true');
         if (session.user.email) {
           setUserProfile(prev => ({ ...prev, email: session.user.email || prev.email }));
+          checkSubscriptionStatus(session.user.id, session.user.email);
         }
       } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false);
+        setIsPaidUser(false);
         localStorage.setItem(LOGIN_KEY, 'false');
       }
     });
@@ -731,16 +759,31 @@ export default function App() {
                 
                 {/* Dashboard Return Button */}
                 <button 
-                  onClick={() => setActiveLessonId('')}
-                  className={`w-full flex items-center ${isSidebarExpanded ? 'justify-start gap-2.5 px-3' : 'justify-center px-0'} py-2.5 rounded-[12px] text-left text-xs font-semibold cursor-pointer transition-colors ${
+                  onClick={() => {
+                    if (activeModuleId !== 'intro' && !isPaidUser) {
+                      setCheckoutModalInfo({
+                        title: 'Visão Geral Reservada para Alunos',
+                        description: 'A visão geral e ferramentas dos módulos avançados são exclusivas para inscritos no YouTuber Pro. Desbloqueie sua vaga com o Stripe para acessar!'
+                      });
+                      setIsCheckoutModalOpen(true);
+                      return;
+                    }
+                    setActiveLessonId('');
+                  }}
+                  className={`w-full flex items-center ${isSidebarExpanded ? 'justify-between px-3' : 'justify-center px-0'} py-2.5 rounded-[12px] text-left text-xs font-semibold cursor-pointer transition-colors ${
                     !activeLessonId 
                       ? 'bg-white/15 text-white border border-white/20' 
                       : 'text-neutral-300 hover:text-white hover:bg-white/5'
                   }`}
                   title={!isSidebarExpanded ? "Visão Geral" : undefined}
                 >
-                  <BookOpen size={16} className={!activeLessonId ? 'text-white' : 'text-neutral-400'} />
-                  {isSidebarExpanded && <span>Visão Geral</span>}
+                  <div className="flex items-center gap-2.5">
+                    <BookOpen size={16} className={!activeLessonId ? 'text-[#00c7fc]' : 'text-neutral-400'} />
+                    {isSidebarExpanded && <span>Visão Geral</span>}
+                  </div>
+                  {isSidebarExpanded && activeModuleId !== 'intro' && !isPaidUser && (
+                    <Lock size={12} className="text-amber-400 shrink-0" />
+                  )}
                 </button>
 
                 <div className="space-y-1">
@@ -754,6 +797,7 @@ export default function App() {
                       : activeModuleId === mod.id;
                     const completedLessons = mod.subtopics.filter(s => progress.completedLessons.includes(s.id)).length;
                     const isAllCompleted = completedLessons === mod.subtopics.length;
+                    const isLockedModule = mod.id !== 'intro' && !isPaidUser;
 
                     return (
                       <div 
@@ -766,8 +810,15 @@ export default function App() {
                         {/* Module Button */}
                         <button
                           onClick={() => {
+                            if (isLockedModule) {
+                              setCheckoutModalInfo({
+                                title: `Desbloquear Módulo: ${getModuleName(mod.title)}`,
+                                description: 'Este módulo técnico é reservado para alunos pagantes do YouTuber Pro. Ative seu acesso instantâneo para liberar!'
+                              });
+                              setIsCheckoutModalOpen(true);
+                              return;
+                            }
                             setActiveModuleId(mod.id);
-                            // Expand if collapsed
                             if (!isSidebarExpanded) {
                               setIsSidebarExpanded(true);
                             }
@@ -789,8 +840,14 @@ export default function App() {
 
                           {isSidebarExpanded && (
                             <div className="shrink-0 flex items-center gap-1">
-                              {isAllCompleted && <CheckCircle2 size={11} className="text-[#30d158] shrink-0 mr-1" />}
-                              {expandedEmenta[mod.id] ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                              {isLockedModule ? (
+                                <Lock size={12} className="text-amber-400 shrink-0" />
+                              ) : (
+                                <>
+                                  {isAllCompleted && <CheckCircle2 size={11} className="text-[#30d158] shrink-0 mr-1" />}
+                                  {expandedEmenta[mod.id] ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                                </>
+                              )}
                             </div>
                           )}
                         </button>
@@ -808,13 +865,18 @@ export default function App() {
                               {mod.subtopics.map((sub, sIdx) => {
                                 const isCurrentLesson = activeLessonId === sub.id;
                                 const isCompleted = progress.completedLessons.includes(sub.id);
+                                const isLockedLesson = mod.id !== 'intro' && !isPaidUser;
 
                                 return (
                                   <button
                                     key={sub.id}
                                     onClick={() => {
-                                      if (!isLoggedIn) {
-                                        setIsExclusiveModalOpen(true);
+                                      if (isLockedLesson) {
+                                        setCheckoutModalInfo({
+                                          title: `Aula Trancada: ${sub.title}`,
+                                          description: 'Esta aula prática e seus simuladores são reservados para alunos inscritos. Finalize sua inscrição via Stripe para liberar!'
+                                        });
+                                        setIsCheckoutModalOpen(true);
                                         return;
                                       }
                                       setActiveModuleId(mod.id);
@@ -828,8 +890,12 @@ export default function App() {
                                     }`}
                                   >
                                     <span className="truncate">{sIdx + 1}. {sub.title.replace(/^\d+\.\s*/, '')}</span>
-                                    {isCompleted && (
-                                      <CheckCircle2 size={10} className={isCurrentLesson ? 'text-white' : 'text-[#30d158]'} />
+                                    {isLockedLesson ? (
+                                      <Lock size={10} className="text-amber-400 shrink-0 ml-1" />
+                                    ) : (
+                                      isCompleted && (
+                                        <CheckCircle2 size={10} className={isCurrentLesson ? 'text-white' : 'text-[#30d158]'} />
+                                      )
                                     )}
                                   </button>
                                 );
@@ -1484,10 +1550,8 @@ export default function App() {
 
                 </div>
               </div>
-            ) : (
-              <RequireSubscription onOpenLoginModal={() => setIsSupabaseLoginOpen(true)}>
-                {!activeLessonId ? (
-                  <div className="flex-1 overflow-y-auto bg-[#f5f5f7] p-6 md:p-10 space-y-8 select-text">
+            ) : !activeLessonId ? (
+              <div className="flex-1 overflow-y-auto bg-[#f5f5f7] p-6 md:p-10 space-y-8 select-text">
                 
                 {/* Welcoming Header */}
                 <motion.div 
@@ -1920,8 +1984,6 @@ export default function App() {
 
               </div>
             )}
-          </RequireSubscription>
-        )}
 
           </main>
 
@@ -2345,6 +2407,14 @@ export default function App() {
         onNavigateForgotPassword={() => {
           setCurrentRoute('esqueci-senha');
         }}
+      />
+
+      {/* Stripe In-Page Glassmorphic Checkout Modal */}
+      <StripeCheckoutModal
+        isOpen={isCheckoutModalOpen}
+        onClose={() => setIsCheckoutModalOpen(false)}
+        title={checkoutModalInfo.title}
+        description={checkoutModalInfo.description}
       />
 
     </div>
