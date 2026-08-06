@@ -1,0 +1,6 @@
+{
+  "name": "Youtuber Pro",
+  "description": "Guia definitivo e interativo do Youtuber Pro com módulos de narrativa, estética, hardware, edição, áudio, colorimetria e métricas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
