@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
+    "upload:media": "node scripts/uploadMediaToSupabaseStorage.js",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
