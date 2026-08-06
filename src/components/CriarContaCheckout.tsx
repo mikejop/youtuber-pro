@@ -4,7 +4,8 @@ import { handleStripeCheckoutWithCustomerData, DEFAULT_PRICE_ID } from '../lib/s
 import { rateLimiter, sanitizeText } from '../lib/security';
 import { 
   User, Mail, Lock, Phone, Briefcase, FileText, MapPin, 
-  ArrowLeft, CreditCard, ShieldCheck, CheckCircle2, Sparkles, AlertCircle 
+  ArrowLeft, CreditCard, ShieldCheck, CheckCircle2, Sparkles, AlertCircle,
+  Tag, Check, Trash2, Percent
 } from 'lucide-react';
 
 interface CriarContaCheckoutProps {
@@ -30,21 +31,79 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
   const [cidade, setCidade] = useState('');
   const [estado, setEstado] = useState('');
 
+  // Cupom State (Busca e Validação via Stripe API)
+  const [cupomInput, setCupomInput] = useState('');
+  const [cupomAplicado, setCupomAplicado] = useState<{
+    code: string;
+    couponId: string;
+    percentOff?: number | null;
+    amountOff?: number | null;
+    name?: string;
+  } | null>(null);
+  const [validandoCupom, setValidandoCupom] = useState(false);
+  const [erroCupom, setErroCupom] = useState<string | null>(null);
+
   const [carregando, setCarregando] = useState(false);
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+
+  // Preço base R$ 67,00
+  const BASE_PRICE = 67;
+  let descontoCalculado = 0;
+  if (cupomAplicado) {
+    if (cupomAplicado.percentOff) {
+      descontoCalculado = (BASE_PRICE * cupomAplicado.percentOff) / 100;
+    } else if (cupomAplicado.amountOff) {
+      descontoCalculado = cupomAplicado.amountOff;
+    }
+  }
+  const precoFinal = Math.max(0, BASE_PRICE - descontoCalculado);
+
+  // Função para validar o cupom na API da Stripe
+  const handleValidarCupom = async () => {
+    const codeClean = cupomInput.trim().toUpperCase();
+    if (!codeClean) return;
+
+    setValidandoCupom(true);
+    setErroCupom(null);
+
+    try {
+      const res = await fetch('https://txmaffxbrmxlzakxathe.supabase.co/functions/v1/validate-coupon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: codeClean }),
+      });
+      const data = await res.json();
+
+      if (data.valid) {
+        setCupomAplicado({
+          code: data.code,
+          couponId: data.couponId,
+          percentOff: data.percentOff,
+          amountOff: data.amountOff,
+          name: data.name,
+        });
+        setCupomInput('');
+      } else {
+        setErroCupom(data.message || 'Cupom inválido ou expirado.');
+      }
+    } catch (err) {
+      console.warn('Erro ao validar cupom:', err);
+      setErroCupom('Erro de conexão ao consultar cupom na Stripe.');
+    } finally {
+      setValidandoCupom(false);
+    }
+  };
 
   // Máscara dinâmica de CPF / CNPJ
   const handleCpfCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
     if (value.length <= 11) {
-      // CPF: 000.000.000-00
       value = value
         .replace(/(\d{3})(\d)/, '$1.$2')
         .replace(/(\d{3})(\d)/, '$1.$2')
         .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
     } else {
-      // CNPJ: 00.000.000/0001-00
       value = value.substring(0, 14);
       value = value
         .replace(/^(\d{2})(\d)/, '$1.$2')
@@ -139,6 +198,7 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
             profession: profissao,
             cpf_cnpj: cpfSanitizado,
             address: addressString,
+            applied_coupon: cupomAplicado?.code || null,
           },
         },
       });
@@ -438,14 +498,14 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
               ) : (
                 <>
                   <CreditCard className="w-4 h-4" />
-                  <span>Criar Conta e Pagar no Stripe</span>
+                  <span>Criar Conta e Pagar no Stripe (R$ {precoFinal.toFixed(2).replace('.', ',')})</span>
                 </>
               )}
             </button>
           </form>
         </div>
 
-        {/* Lado Direito: Resumo do Pedido & Garantia */}
+        {/* Lado Direito: Resumo do Pedido, Cupom de Desconto & Garantia */}
         <div className="lg:col-span-5 space-y-6 flex flex-col justify-between">
           
           <div className="bg-neutral-900/90 border border-neutral-800 rounded-3xl p-6 md:p-8 backdrop-blur-2xl shadow-2xl space-y-6">
@@ -456,6 +516,73 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
               <p className="text-xs text-neutral-400">Guia de Sobrevivência & Simuladores 3D</p>
             </div>
 
+            {/* SEÇÃO DE CUPOM DE DESCONTO STRIPE */}
+            <div className="bg-neutral-950/80 border border-neutral-800 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center space-x-2 text-xs font-semibold text-neutral-300">
+                <Tag className="w-4 h-4 text-[#0071e3]" />
+                <span>Cupom de Desconto (Stripe)</span>
+              </div>
+
+              {cupomAplicado ? (
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div>
+                      <span className="text-xs font-bold text-emerald-400 uppercase block">{cupomAplicado.code}</span>
+                      <span className="text-[10px] text-neutral-400">
+                        {cupomAplicado.percentOff 
+                          ? `${cupomAplicado.percentOff}% de desconto aplicado` 
+                          : `R$ ${cupomAplicado.amountOff?.toFixed(2).replace('.', ',')} de desconto`}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCupomAplicado(null)}
+                    className="p-1.5 text-neutral-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
+                    title="Remover Cupom"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      placeholder="Código do cupom (ex: PROMO10)"
+                      value={cupomInput}
+                      onChange={(e) => setCupomInput(e.target.value.toUpperCase())}
+                      className="flex-1 bg-neutral-900 border border-neutral-800 focus:border-[#0071e3] rounded-xl px-3 py-2 text-xs text-white uppercase focus:outline-none placeholder:text-neutral-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleValidarCupom}
+                      disabled={validandoCupom || !cupomInput.trim()}
+                      className="px-4 py-2 bg-neutral-800 hover:bg-[#0071e3] text-white text-xs font-bold rounded-xl transition-all disabled:opacity-40 cursor-pointer flex items-center justify-center shrink-0"
+                    >
+                      {validandoCupom ? (
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <span>Aplicar</span>
+                      )}
+                    </button>
+                  </div>
+
+                  {erroCupom && (
+                    <p className="text-[11px] text-red-400 flex items-center space-x-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{erroCupom}</span>
+                    </p>
+                  )}
+                  <p className="text-[10px] text-neutral-500 leading-relaxed">
+                    * Limite de 1 cupom por compra. Os cupons são validados diretamente na API da Stripe.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Resumo de Valores */}
             <div className="space-y-3 text-xs text-neutral-300">
               <div className="flex items-center justify-between">
                 <span>Playbook Visual (9 Módulos)</span>
@@ -465,14 +592,25 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                 <span>Simuladores 3D de Luz, CTR & Cor</span>
                 <span className="font-bold text-white">Incluído</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Kit de Aceleração do Criador</span>
-                <span className="font-bold text-white">Incluído</span>
-              </div>
+
+              {cupomAplicado && descontoCalculado > 0 && (
+                <div className="flex items-center justify-between text-emerald-400 font-semibold border-t border-neutral-800/80 pt-2">
+                  <span>Desconto ({cupomAplicado.code})</span>
+                  <span>- R$ {descontoCalculado.toFixed(2).replace('.', ',')}</span>
+                </div>
+              )}
+
               <div className="flex items-center justify-between border-t border-neutral-800 pt-3">
-                <span className="text-sm font-bold text-white">Valor Total</span>
+                <span className="text-sm font-bold text-white">Valor Final</span>
                 <div className="text-right">
-                  <span className="text-2xl font-black text-white block">R$ 67,00</span>
+                  <div className="flex items-baseline space-x-2 justify-end">
+                    {descontoCalculado > 0 && (
+                      <span className="text-xs text-neutral-500 line-through">R$ {BASE_PRICE.toFixed(2).replace('.', ',')}</span>
+                    )}
+                    <span className="text-2xl font-black text-white block">
+                      R$ {precoFinal.toFixed(2).replace('.', ',')}
+                    </span>
+                  </div>
                   <span className="text-[10px] text-emerald-400 font-bold">Acesso Vitalício sem Mensalidade</span>
                 </div>
               </div>
