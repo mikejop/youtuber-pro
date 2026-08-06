@@ -70,6 +70,7 @@ import DefinirSenha from './components/DefinirSenha';
 import EsqueciSenha from './components/EsqueciSenha';
 import Preloader from './components/Preloader';
 import SupabaseLoginModal from './components/SupabaseLoginModal';
+import RequireSubscription from './components/RequireSubscription';
 import { supabase } from './lib/supabase';
 import { handleStripeCheckout } from './lib/stripe';
 import { sanitizeText, rateLimiter } from './lib/security';
@@ -1483,8 +1484,10 @@ export default function App() {
 
                 </div>
               </div>
-            ) : !activeLessonId ? (
-              <div className="flex-1 overflow-y-auto bg-[#f5f5f7] p-6 md:p-10 space-y-8 select-text">
+            ) : (
+              <RequireSubscription onOpenLoginModal={() => setIsSupabaseLoginOpen(true)}>
+                {!activeLessonId ? (
+                  <div className="flex-1 overflow-y-auto bg-[#f5f5f7] p-6 md:p-10 space-y-8 select-text">
                 
                 {/* Welcoming Header */}
                 <motion.div 
@@ -1917,6 +1920,8 @@ export default function App() {
 
               </div>
             )}
+          </RequireSubscription>
+        )}
 
           </main>
 

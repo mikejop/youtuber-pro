@@ -17,6 +17,69 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 const PRODUCT_ID_YOUTUBER_PRO = 'prod_V1O7wwjRIcsTrN';
 
+/**
+ * Helper to resolve user_id from auth.users by email
+ */
+async function getUserIdByEmail(email: string): Promise<string | null> {
+  try {
+    const { data: usersData, error } = await supabaseAdmin.auth.admin.listUsers();
+    if (error || !usersData?.users) return null;
+    const targetUser = usersData.users.find(
+      (u) => u.email?.toLowerCase() === email.toLowerCase()
+    );
+    return targetUser?.id || null;
+  } catch (err: any) {
+    console.warn('⚠️ Could not resolve user_id by email:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Helper to upsert into subscribers table securely with service_role key
+ */
+async function upsertSubscriberRecord({
+  email,
+  stripeCustomerId,
+  status,
+  userId,
+}: {
+  email: string;
+  stripeCustomerId?: string | null;
+  status: string;
+  userId?: string | null;
+}) {
+  const cleanEmail = email.toLowerCase().trim();
+  const resolvedUserId = userId || (await getUserIdByEmail(cleanEmail));
+
+  if (!resolvedUserId) {
+    console.warn(`⚠️ Warning: No Auth user ID found for ${cleanEmail}. Upserting subscriber by email.`);
+  }
+
+  const payload: any = {
+    email: cleanEmail,
+    status: status,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (resolvedUserId) {
+    payload.id = resolvedUserId;
+  }
+  if (stripeCustomerId) {
+    payload.stripe_customer_id = stripeCustomerId;
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('subscribers')
+    .upsert(payload, { onConflict: 'email' })
+    .select();
+
+  if (error) {
+    console.error(`❌ Error updating subscriber (${cleanEmail}) -> status=${status}:`, error.message);
+  } else {
+    console.log(`✅ Subscriber status updated (${cleanEmail}) -> status=${status}:`, data);
+  }
+}
+
 serve(async (req) => {
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
@@ -41,54 +104,47 @@ serve(async (req) => {
     return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object as Stripe.Checkout.Session;
-    
-    const stripeSessionId = session.id;
-    const stripeCustomerId = typeof session.customer === 'string' ? session.customer : session.customer?.id || null;
-    const customerEmail = session.customer_details?.email || session.customer_email || 'desconhecido@email.com';
-    const customerName = session.customer_details?.name || null;
-    const paymentStatus = session.payment_status || 'paid';
-    const amountTotal = session.amount_total || 0;
-    const currency = session.currency || 'brl';
+  console.log(`🔔 Stripe Webhook Received: ${event.type}`);
 
-    // Retrieve line items to identify the exact price and product purchased
-    let purchasedProductId = PRODUCT_ID_YOUTUBER_PRO;
-    let purchasedPriceId = 'price_1U1M973VfcJ3qJcs97vRW0op';
+  switch (event.type) {
+    // 1. COMPRA OU ASSINATURA CONCLUÍDA
+    case 'checkout.session.completed': {
+      const session = event.data.object as Stripe.Checkout.Session;
+      
+      const stripeSessionId = session.id;
+      const stripeCustomerId = typeof session.customer === 'string' ? session.customer : session.customer?.id || null;
+      const customerEmail = session.customer_details?.email || session.customer_email || 'desconhecido@email.com';
+      const customerName = session.customer_details?.name || null;
+      const paymentStatus = session.payment_status || 'paid';
+      const amountTotal = session.amount_total || 0;
+      const currency = session.currency || 'brl';
 
-    try {
-      const lineItems = await stripe.checkout.sessions.listLineItems(stripeSessionId, {
-        expand: ['data.price.product'],
-      });
+      let purchasedProductId = PRODUCT_ID_YOUTUBER_PRO;
+      let purchasedPriceId = 'price_1U1M973VfcJ3qJcs97vRW0op';
 
-      if (lineItems.data.length > 0) {
-        const item = lineItems.data[0];
-        if (item.price) {
-          purchasedPriceId = item.price.id;
-          const prod = item.price.product;
-          if (typeof prod === 'string') {
-            purchasedProductId = prod;
-          } else if (prod && 'id' in prod) {
-            purchasedProductId = prod.id;
+      try {
+        const lineItems = await stripe.checkout.sessions.listLineItems(stripeSessionId, {
+          expand: ['data.price.product'],
+        });
+
+        if (lineItems.data.length > 0) {
+          const item = lineItems.data[0];
+          if (item.price) {
+            purchasedPriceId = item.price.id;
+            const prod = item.price.product;
+            if (typeof prod === 'string') {
+              purchasedProductId = prod;
+            } else if (prod && 'id' in prod) {
+              purchasedProductId = prod.id;
+            }
           }
         }
+      } catch (lineErr: any) {
+        console.warn('⚠️ Could not fetch line items:', lineErr.message);
       }
-    } catch (lineErr: any) {
-      console.warn('⚠️ Could not fetch line items:', lineErr.message);
-    }
 
-    console.log('🔄 Edge Function: Syncing Stripe purchase to Supabase:', {
-      stripeSessionId,
-      customerEmail,
-      purchasedProductId,
-      purchasedPriceId,
-      amountTotal,
-    });
-
-    // 1. Save purchase details to Supabase table "purchases"
-    const { data: insertedData, error: dbError } = await supabaseAdmin
-      .from('purchases')
-      .upsert(
+      // 1.1 Salvar compra na tabela "purchases"
+      await supabaseAdmin.from('purchases').upsert(
         {
           stripeSessionId,
           stripeCustomerId,
@@ -102,33 +158,110 @@ serve(async (req) => {
           updatedAt: new Date().toISOString(),
         },
         { onConflict: 'stripeSessionId' }
-      )
-      .select();
+      );
 
-    if (dbError) {
-      console.error('❌ Supabase DB insert error:', dbError.message);
-    } else {
-      console.log('✅ Purchase saved to Supabase DB via Edge Function:', insertedData);
-    }
+      // 1.2 Convidar/Criar usuário no Supabase Auth
+      let createdUserId: string | null = null;
+      try {
+        const originUrl = Deno.env.get('SITE_URL') || 'https://youtuber-pro.vercel.app';
+        const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(customerEmail, {
+          redirectTo: `${originUrl}/definir-senha`,
+          data: {
+            full_name: customerName,
+            purchased_product_id: purchasedProductId,
+          },
+        });
 
-    // 2. Automatically Create & Invite the user in Supabase Authentication (auth.users)
-    try {
-      const originUrl = Deno.env.get('SITE_URL') || 'https://youtuber-pro.vercel.app';
-      const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(customerEmail, {
-        redirectTo: `${originUrl}/definir-senha`,
-        data: {
-          full_name: customerName,
-          purchased_product_id: purchasedProductId,
-        },
+        if (authUser?.user) {
+          createdUserId = authUser.user.id;
+        } else if (authError) {
+          createdUserId = await getUserIdByEmail(customerEmail);
+        }
+      } catch (inviteErr: any) {
+        console.error('⚠️ Could not invite user via Auth Admin:', inviteErr.message);
+      }
+
+      // 1.3 Atualizar a tabela "subscribers" com status='active'
+      await upsertSubscriberRecord({
+        email: customerEmail,
+        stripeCustomerId: stripeCustomerId,
+        status: 'active',
+        userId: createdUserId,
       });
 
-      if (authError) {
-        console.warn('ℹ️ Supabase Auth Invite note (user may already exist):', authError.message);
-      } else {
-        console.log('✉️ User invited and created in Supabase Auth:', authUser.user?.email);
+      break;
+    }
+
+    // 2. ASSINATURA ATUALIZADA (Status alterado)
+    case 'customer.subscription.updated': {
+      const subscription = event.data.object as Stripe.Subscription;
+      const stripeCustomerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id || null;
+      const status = subscription.status; // active, past_due, canceled, trialing, etc.
+
+      // Tenta recuperar o email do customer na Stripe se disponível
+      let customerEmail: string | null = null;
+      if (stripeCustomerId) {
+        try {
+          const cust = await stripe.customers.retrieve(stripeCustomerId);
+          if (!cust.deleted) {
+            customerEmail = cust.email;
+          }
+        } catch (e: any) {
+          console.warn('⚠️ Could not retrieve customer email:', e.message);
+        }
       }
-    } catch (inviteErr: any) {
-      console.error('⚠️ Could not invite user via Supabase Auth Admin:', inviteErr.message);
+
+      if (customerEmail) {
+        await upsertSubscriberRecord({
+          email: customerEmail,
+          stripeCustomerId: stripeCustomerId,
+          status: status,
+        });
+      }
+      break;
+    }
+
+    // 3. ASSINATURA CANCELADA
+    case 'customer.subscription.deleted': {
+      const subscription = event.data.object as Stripe.Subscription;
+      const stripeCustomerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id || null;
+
+      let customerEmail: string | null = null;
+      if (stripeCustomerId) {
+        try {
+          const cust = await stripe.customers.retrieve(stripeCustomerId);
+          if (!cust.deleted) {
+            customerEmail = cust.email;
+          }
+        } catch (e: any) {
+          console.warn('⚠️ Could not retrieve customer email:', e.message);
+        }
+      }
+
+      if (customerEmail) {
+        await upsertSubscriberRecord({
+          email: customerEmail,
+          stripeCustomerId: stripeCustomerId,
+          status: 'canceled',
+        });
+      }
+      break;
+    }
+
+    // 4. FALHA NO PAGAMENTO DA FATURA
+    case 'invoice.payment_failed': {
+      const invoice = event.data.object as Stripe.Invoice;
+      const stripeCustomerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id || null;
+      const customerEmail = invoice.customer_email || null;
+
+      if (customerEmail) {
+        await upsertSubscriberRecord({
+          email: customerEmail,
+          stripeCustomerId: stripeCustomerId,
+          status: 'past_due',
+        });
+      }
+      break;
     }
   }
 
