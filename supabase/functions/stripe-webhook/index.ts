@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8';
 import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno';
 
 const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY') || '';
@@ -85,6 +85,7 @@ serve(async (req) => {
       amountTotal,
     });
 
+    // 1. Save purchase details to Supabase table "purchases"
     const { data: insertedData, error: dbError } = await supabaseAdmin
       .from('purchases')
       .upsert(
@@ -108,6 +109,26 @@ serve(async (req) => {
       console.error('❌ Supabase DB insert error:', dbError.message);
     } else {
       console.log('✅ Purchase saved to Supabase DB via Edge Function:', insertedData);
+    }
+
+    // 2. Automatically Create & Invite the user in Supabase Authentication (auth.users)
+    try {
+      const originUrl = Deno.env.get('SITE_URL') || 'https://youtuber-pro.vercel.app';
+      const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(customerEmail, {
+        redirectTo: `${originUrl}/definir-senha`,
+        data: {
+          full_name: customerName,
+          purchased_product_id: purchasedProductId,
+        },
+      });
+
+      if (authError) {
+        console.warn('ℹ️ Supabase Auth Invite note (user may already exist):', authError.message);
+      } else {
+        console.log('✉️ User invited and created in Supabase Auth:', authUser.user?.email);
+      }
+    } catch (inviteErr: any) {
+      console.error('⚠️ Could not invite user via Supabase Auth Admin:', inviteErr.message);
     }
   }
 
