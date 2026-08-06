@@ -1,4 +1,4 @@
-import React, { type CSSProperties, forwardRef, useCallback, useEffect, useId, useRef, useState } from "react"
+import { type CSSProperties, forwardRef, useCallback, useEffect, useId, useRef, useState } from "react"
 import { ShaderDisplacementGenerator, fragmentShaders } from "./shader-utils"
 import { displacementMap, polarDisplacementMap, prominentDisplacementMap } from "./utils"
 
@@ -32,7 +32,7 @@ const getMap = (mode: "standard" | "polar" | "prominent" | "shader", shaderMapUr
 }
 
 /* ---------- SVG filter (edge-only displacement) ---------- */
-export const GlassFilter: React.FC<{ id: string; displacementScale: number; aberrationIntensity: number; width: number; height: number; mode: "standard" | "polar" | "prominent" | "shader"; shaderMapUrl?: string }> = ({
+const GlassFilter: React.FC<{ id: string; displacementScale: number; aberrationIntensity: number; width: number; height: number; mode: "standard" | "polar" | "prominent" | "shader"; shaderMapUrl?: string }> = ({
   id,
   displacementScale,
   aberrationIntensity,
@@ -128,7 +128,7 @@ export const GlassFilter: React.FC<{ id: string; displacementScale: number; aber
 )
 
 /* ---------- container ---------- */
-export const GlassContainer = forwardRef<
+const GlassContainer = forwardRef<
   HTMLDivElement,
   React.PropsWithChildren<{
     className?: string
@@ -143,7 +143,6 @@ export const GlassContainer = forwardRef<
     onMouseDown?: () => void
     onMouseUp?: () => void
     active?: boolean
-    isHovered?: boolean
     overLight?: boolean
     cornerRadius?: number
     padding?: string
@@ -157,17 +156,15 @@ export const GlassContainer = forwardRef<
       children,
       className = "",
       style,
-      displacementScale = 24,
-      blurAmount = 0.1,
+      displacementScale = 25,
+      blurAmount = 12,
       saturation = 180,
-      aberrationIntensity = 1.5,
-      mouseOffset = { x: 0, y: 0 },
+      aberrationIntensity = 2,
       onMouseEnter,
       onMouseLeave,
       onMouseDown,
       onMouseUp,
       active = false,
-      isHovered = false,
       overLight = false,
       cornerRadius = 999,
       padding = "24px 32px",
@@ -180,7 +177,7 @@ export const GlassContainer = forwardRef<
     const filterId = useId()
     const [shaderMapUrl, setShaderMapUrl] = useState<string>("")
 
-    const isFirefox = typeof navigator !== "undefined" && navigator.userAgent.toLowerCase().includes("firefox")
+    const isFirefox = navigator.userAgent.toLowerCase().includes("firefox")
 
     // Generate shader displacement map when in shader mode
     useEffect(() => {
@@ -192,49 +189,25 @@ export const GlassContainer = forwardRef<
 
     const backdropStyle = {
       filter: isFirefox ? null : `url(#${filterId})`,
-      backdropFilter: `blur(${(overLight ? 8 : 2) + blurAmount * 20}px) saturate(${saturation}%)`,
-    }
-
-    const overlayStyle: CSSProperties = {
-      position: "absolute",
-      inset: 0,
-      width: "100%",
-      height: "100%",
-      borderRadius: `${cornerRadius}px`,
-      pointerEvents: "none",
+      backdropFilter: `blur(${(overLight ? 12 : 4) + blurAmount * 32}px) saturate(${saturation}%)`,
     }
 
     return (
       <div ref={ref} className={`relative ${className} ${active ? "active" : ""} ${Boolean(onClick) ? "cursor-pointer" : ""}`} style={style} onClick={onClick}>
         <GlassFilter mode={mode} id={filterId} displacementScale={displacementScale} aberrationIntensity={aberrationIntensity} width={glassSize.width} height={glassSize.height} shaderMapUrl={shaderMapUrl} />
 
-        {/* Over light effect */}
-        {overLight && (
-          <>
-            <div
-              className="bg-black transition-all duration-150 ease-in-out opacity-20 pointer-events-none z-0"
-              style={overlayStyle}
-            />
-            <div
-              className="bg-black transition-all duration-150 ease-in-out mix-blend-overlay opacity-100 pointer-events-none z-0"
-              style={overlayStyle}
-            />
-          </>
-        )}
-
         <div
-          className="glass z-[1]"
+          className="glass"
           style={{
             borderRadius: `${cornerRadius}px`,
             position: "relative",
-            display: "flex",
-            flexDirection: "column",
-            width: "100%",
-            height: "100%",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "24px",
             padding,
             overflow: "hidden",
             transition: "all 0.2s ease-in-out",
-            boxShadow: overLight ? "0px 16px 50px rgba(0, 0, 0, 0.5)" : "0px 8px 30px rgba(0, 0, 0, 0.2)",
+            boxShadow: overLight ? "0px 16px 70px rgba(0, 0, 0, 0.75)" : "0px 12px 40px rgba(0, 0, 0, 0.25)",
           }}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
@@ -255,95 +228,17 @@ export const GlassContainer = forwardRef<
 
           {/* user content stays sharp */}
           <div
-            className="transition-all duration-150 ease-in-out text-white w-full h-full"
+            className="transition-all duration-150 ease-in-out text-white"
             style={{
               position: "relative",
               zIndex: 1,
-              textShadow: overLight ? "0px 2px 12px rgba(0, 0, 0, 0)" : "0px 1px 8px rgba(0, 0, 0, 0.3)",
+              font: "500 20px/1 system-ui",
+              textShadow: overLight ? "0px 2px 12px rgba(0, 0, 0, 0)" : "0px 2px 12px rgba(0, 0, 0, 0.4)",
             }}
           >
             {children}
           </div>
         </div>
-
-        {/* Border layer 1 */}
-        <span
-          style={{
-            ...overlayStyle,
-            zIndex: 2,
-            mixBlendMode: "screen",
-            opacity: 0.25,
-            padding: "1px",
-            WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
-            WebkitMaskComposite: "xor",
-            maskComposite: "exclude",
-            boxShadow: "0 0 0 0.5px rgba(255, 255, 255, 0.4) inset, 0 1px 2px rgba(255, 255, 255, 0.2) inset",
-            background: `linear-gradient(
-            ${135 + mouseOffset.x * 1.2}deg,
-            rgba(255, 255, 255, 0.0) 0%,
-            rgba(255, 255, 255, ${0.12 + Math.abs(mouseOffset.x) * 0.008}) ${Math.max(10, 33 + mouseOffset.y * 0.3)}%,
-            rgba(255, 255, 255, ${0.4 + Math.abs(mouseOffset.x) * 0.012}) ${Math.min(90, 66 + mouseOffset.y * 0.4)}%,
-            rgba(255, 255, 255, 0.0) 100%
-          )`,
-          }}
-        />
-
-        {/* Border layer 2 */}
-        <span
-          style={{
-            ...overlayStyle,
-            zIndex: 2,
-            mixBlendMode: "overlay",
-            padding: "1px",
-            WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
-            WebkitMaskComposite: "xor",
-            maskComposite: "exclude",
-            boxShadow: "0 0 0 0.5px rgba(255, 255, 255, 0.4) inset, 0 1px 2px rgba(255, 255, 255, 0.2) inset",
-            background: `linear-gradient(
-            ${135 + mouseOffset.x * 1.2}deg,
-            rgba(255, 255, 255, 0.0) 0%,
-            rgba(255, 255, 255, ${0.32 + Math.abs(mouseOffset.x) * 0.008}) ${Math.max(10, 33 + mouseOffset.y * 0.3)}%,
-            rgba(255, 255, 255, ${0.6 + Math.abs(mouseOffset.x) * 0.012}) ${Math.min(90, 66 + mouseOffset.y * 0.4)}%,
-            rgba(255, 255, 255, 0.0) 100%
-          )`,
-          }}
-        />
-
-        {/* Hover effects */}
-        {Boolean(onClick) && (
-          <>
-            <div
-              style={{
-                ...overlayStyle,
-                zIndex: 3,
-                transition: "all 0.2s ease-out",
-                opacity: isHovered || active ? 0.5 : 0,
-                backgroundImage: "radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 50%)",
-                mixBlendMode: "overlay",
-              }}
-            />
-            <div
-              style={{
-                ...overlayStyle,
-                zIndex: 3,
-                transition: "all 0.2s ease-out",
-                opacity: active ? 0.5 : 0,
-                backgroundImage: "radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 80%)",
-                mixBlendMode: "overlay",
-              }}
-            />
-            <div
-              style={{
-                ...overlayStyle,
-                zIndex: 3,
-                transition: "all 0.2s ease-out",
-                opacity: isHovered ? 0.4 : active ? 0.8 : 0,
-                backgroundImage: "radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%)",
-                mixBlendMode: "overlay",
-              }}
-            />
-          </>
-        )}
       </div>
     )
   },
@@ -351,8 +246,8 @@ export const GlassContainer = forwardRef<
 
 GlassContainer.displayName = "GlassContainer"
 
-export interface LiquidGlassProps {
-  children?: React.ReactNode
+interface LiquidGlassProps {
+  children: React.ReactNode
   displacementScale?: number
   blurAmount?: number
   saturation?: number
@@ -370,13 +265,13 @@ export interface LiquidGlassProps {
   onClick?: () => void
 }
 
-export function LiquidGlass({
+export default function LiquidGlass({
   children,
-  displacementScale = 24,
-  blurAmount = 0.1,
+  displacementScale = 70,
+  blurAmount = 0.0625,
   saturation = 140,
-  aberrationIntensity = 1.5,
-  elasticity = 0.08,
+  aberrationIntensity = 2,
+  elasticity = 0.15,
   cornerRadius = 999,
   globalMousePos: externalGlobalMousePos,
   mouseOffset: externalMouseOffset,
@@ -546,44 +441,172 @@ export function LiquidGlass({
     return () => window.removeEventListener("resize", updateGlassSize)
   }, [])
 
-  const isCentered = style?.top === "50%" || (style?.position === "absolute" && style?.top === undefined)
-  const baseTransX = isCentered ? "-50%" : "0px"
-  const baseTransY = isCentered ? "-50%" : "0px"
-
-  const transformStyle = `translate(calc(${baseTransX} + ${calculateElasticTranslation().x}px), calc(${baseTransY} + ${calculateElasticTranslation().y}px)) ${isActive && Boolean(onClick) ? "scale(0.96)" : calculateDirectionalScale()}`
+  const transformStyle = `translate(calc(-50% + ${calculateElasticTranslation().x}px), calc(-50% + ${calculateElasticTranslation().y}px)) ${isActive && Boolean(onClick) ? "scale(0.96)" : calculateDirectionalScale()}`
 
   const baseStyle = {
     ...style,
-    transform: style?.transform ? `${style.transform} ${transformStyle}` : transformStyle,
+    transform: transformStyle,
     transition: "all ease-out 0.2s",
   }
 
+  const positionStyles = {
+    position: baseStyle.position || "relative",
+    top: baseStyle.top || "50%",
+    left: baseStyle.left || "50%",
+  }
+
   return (
-    <GlassContainer
-      ref={glassRef}
-      className={className}
-      style={baseStyle}
-      cornerRadius={cornerRadius}
-      displacementScale={overLight ? displacementScale * 0.5 : displacementScale}
-      blurAmount={blurAmount}
-      saturation={saturation}
-      aberrationIntensity={aberrationIntensity}
-      glassSize={glassSize}
-      padding={padding}
-      mouseOffset={mouseOffset}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onMouseDown={() => setIsActive(true)}
-      onMouseUp={() => setIsActive(false)}
-      active={isActive}
-      isHovered={isHovered}
-      overLight={overLight}
-      onClick={onClick}
-      mode={mode}
-    >
-      {children}
-    </GlassContainer>
+    <>
+      {/* Over light effect */}
+      <div
+        className={`bg-black transition-all duration-150 ease-in-out pointer-events-none ${overLight ? "opacity-20" : "opacity-0"}`}
+        style={{
+          ...positionStyles,
+          height: glassSize.height,
+          width: glassSize.width,
+          borderRadius: `${cornerRadius}px`,
+          transform: baseStyle.transform,
+          transition: baseStyle.transition,
+        }}
+      />
+      <div
+        className={`bg-black transition-all duration-150 ease-in-out pointer-events-none mix-blend-overlay ${overLight ? "opacity-100" : "opacity-0"}`}
+        style={{
+          ...positionStyles,
+          height: glassSize.height,
+          width: glassSize.width,
+          borderRadius: `${cornerRadius}px`,
+          transform: baseStyle.transform,
+          transition: baseStyle.transition,
+        }}
+      />
+
+      <GlassContainer
+        ref={glassRef}
+        className={className}
+        style={baseStyle}
+        cornerRadius={cornerRadius}
+        displacementScale={overLight ? displacementScale * 0.5 : displacementScale}
+        blurAmount={blurAmount}
+        saturation={saturation}
+        aberrationIntensity={aberrationIntensity}
+        glassSize={glassSize}
+        padding={padding}
+        mouseOffset={mouseOffset}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onMouseDown={() => setIsActive(true)}
+        onMouseUp={() => setIsActive(false)}
+        active={isActive}
+        overLight={overLight}
+        onClick={onClick}
+        mode={mode}
+      >
+        {children}
+      </GlassContainer>
+
+      {/* Border layer 1 - extracted from glass container */}
+      <span
+        style={{
+          ...positionStyles,
+          height: glassSize.height,
+          width: glassSize.width,
+          borderRadius: `${cornerRadius}px`,
+          transform: baseStyle.transform,
+          transition: baseStyle.transition,
+          pointerEvents: "none",
+          mixBlendMode: "screen",
+          opacity: 0.2,
+          padding: "1.5px",
+          WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          boxShadow: "0 0 0 0.5px rgba(255, 255, 255, 0.5) inset, 0 1px 3px rgba(255, 255, 255, 0.25) inset, 0 1px 4px rgba(0, 0, 0, 0.35)",
+          background: `linear-gradient(
+          ${135 + mouseOffset.x * 1.2}deg,
+          rgba(255, 255, 255, 0.0) 0%,
+          rgba(255, 255, 255, ${0.12 + Math.abs(mouseOffset.x) * 0.008}) ${Math.max(10, 33 + mouseOffset.y * 0.3)}%,
+          rgba(255, 255, 255, ${0.4 + Math.abs(mouseOffset.x) * 0.012}) ${Math.min(90, 66 + mouseOffset.y * 0.4)}%,
+          rgba(255, 255, 255, 0.0) 100%
+        )`,
+        }}
+      />
+
+      {/* Border layer 2 - duplicate with mix-blend-overlay */}
+      <span
+        style={{
+          ...positionStyles,
+          height: glassSize.height,
+          width: glassSize.width,
+          borderRadius: `${cornerRadius}px`,
+          transform: baseStyle.transform,
+          transition: baseStyle.transition,
+          pointerEvents: "none",
+          mixBlendMode: "overlay",
+          padding: "1.5px",
+          WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          boxShadow: "0 0 0 0.5px rgba(255, 255, 255, 0.5) inset, 0 1px 3px rgba(255, 255, 255, 0.25) inset, 0 1px 4px rgba(0, 0, 0, 0.35)",
+          background: `linear-gradient(
+          ${135 + mouseOffset.x * 1.2}deg,
+          rgba(255, 255, 255, 0.0) 0%,
+          rgba(255, 255, 255, ${0.32 + Math.abs(mouseOffset.x) * 0.008}) ${Math.max(10, 33 + mouseOffset.y * 0.3)}%,
+          rgba(255, 255, 255, ${0.6 + Math.abs(mouseOffset.x) * 0.012}) ${Math.min(90, 66 + mouseOffset.y * 0.4)}%,
+          rgba(255, 255, 255, 0.0) 100%
+        )`,
+        }}
+      />
+
+      {/* Hover effects */}
+      {Boolean(onClick) && (
+        <>
+          <div
+            style={{
+              ...positionStyles,
+              height: glassSize.height,
+              width: glassSize.width + 1,
+              borderRadius: `${cornerRadius}px`,
+              transform: baseStyle.transform,
+              pointerEvents: "none",
+              transition: "all 0.2s ease-out",
+              opacity: isHovered || isActive ? 0.5 : 0,
+              backgroundImage: "radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 50%)",
+              mixBlendMode: "overlay",
+            }}
+          />
+          <div
+            style={{
+              ...positionStyles,
+              height: glassSize.height,
+              width: glassSize.width + 1,
+              borderRadius: `${cornerRadius}px`,
+              transform: baseStyle.transform,
+              pointerEvents: "none",
+              transition: "all 0.2s ease-out",
+              opacity: isActive ? 0.5 : 0,
+              backgroundImage: "radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 80%)",
+              mixBlendMode: "overlay",
+            }}
+          />
+          <div
+            style={{
+              ...baseStyle,
+              height: glassSize.height,
+              width: glassSize.width + 1,
+              borderRadius: `${cornerRadius}px`,
+              position: baseStyle.position,
+              top: baseStyle.top,
+              left: baseStyle.left,
+              pointerEvents: "none",
+              transition: "all 0.2s ease-out",
+              opacity: isHovered ? 0.4 : isActive ? 0.8 : 0,
+              backgroundImage: "radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%)",
+              mixBlendMode: "overlay",
+            }}
+          />
+        </>
+      )}
+    </>
   )
 }
-
-export default LiquidGlass
