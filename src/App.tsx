@@ -66,6 +66,8 @@ import DeliverExporter from './components/DeliverExporter';
 import IdeationFlowchart from './components/IdeationFlowchart';
 import InteractiveIdeationTheory from './components/InteractiveIdeationTheory';
 import LiquidGlass from './components/LiquidGlass';
+import DefinirSenha from './components/DefinirSenha';
+import EsqueciSenha from './components/EsqueciSenha';
 import { handleStripeCheckout } from './lib/stripe';
 import { sanitizeText, rateLimiter } from './lib/security';
 
@@ -178,6 +180,19 @@ export default function App() {
   const [isExclusiveModalOpen, setIsExclusiveModalOpen] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [copiedChallengeId, setCopiedChallengeId] = useState<string | null>(null);
+  
+  // Route state for /definir-senha and /esqueci-senha
+  const [currentRoute, setCurrentRoute] = useState<string>(() => {
+    const path = window.location.pathname.toLowerCase();
+    const hash = window.location.hash.toLowerCase();
+    if (path.includes('/definir-senha') || hash.includes('type=recovery') || hash.includes('type=invite') || hash.includes('access_token=')) {
+      return 'definir-senha';
+    }
+    if (path.includes('/esqueci-senha')) {
+      return 'esqueci-senha';
+    }
+    return 'main';
+  });
   
   // Timer for Urgency Section
   const [countdown, setCountdown] = useState<string>("14:59");
@@ -515,6 +530,15 @@ export default function App() {
     setIsSearchOpen(false);
     setSearchQuery('');
   };
+
+  // Route-based early rendering for /definir-senha and /esqueci-senha
+  if (currentRoute === 'definir-senha') {
+    return <DefinirSenha onSuccessRedirect={() => { setCurrentRoute('main'); window.location.href = '/'; }} />;
+  }
+
+  if (currentRoute === 'esqueci-senha') {
+    return <EsqueciSenha onBackToLogin={() => setCurrentRoute('main')} />;
+  }
 
   // Flyout on hover for collapsed sidebar
   const handleModuleMouseEnter = (modId: string) => {
