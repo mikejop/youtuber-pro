@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { handleStripeCheckoutWithCustomerData, DEFAULT_PRICE_ID } from '../lib/stripe';
 import { rateLimiter, sanitizeText } from '../lib/security';
@@ -32,6 +33,7 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
   const [estado, setEstado] = useState('');
 
   // Cupom State (Busca e Validação via Stripe API)
+  const [mostrarCampoCupom, setMostrarCampoCupom] = useState(false);
   const [cupomInput, setCupomInput] = useState('');
   const [cupomAplicado, setCupomAplicado] = useState<{
     code: string;
@@ -231,7 +233,7 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
     <div className="min-h-screen bg-black text-white selection:bg-[#0071e3]/30 selection:text-white p-4 md:p-10 flex items-center justify-center">
       <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-12 gap-8 my-auto">
         
-        {/* Lado Esquerdo: Formulário de Cadastro (Estilo Apple.com Spacing & High Legibility) */}
+        {/* Lado Esquerdo: Formulário de Cadastro */}
         <div className="lg:col-span-7 bg-neutral-900/90 border border-neutral-800 rounded-[32px] p-6 md:p-10 backdrop-blur-2xl shadow-2xl space-y-8">
           
           <button
@@ -501,7 +503,7 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
           </form>
         </div>
 
-        {/* Lado Direito: Resumo do Pedido, Cupom de Desconto & Garantia */}
+        {/* Lado Direito: Resumo do Pedido, Preço & Choice Chip Cupom de Desconto com Animação */}
         <div className="lg:col-span-5 space-y-6 flex flex-col justify-between">
           
           <div className="bg-neutral-900/90 border border-neutral-800 rounded-[32px] p-6 md:p-8 backdrop-blur-2xl shadow-2xl space-y-6">
@@ -512,74 +514,8 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
               <p className="text-xs md:text-sm text-neutral-400">Guia de Sobrevivência & Simuladores 3D</p>
             </div>
 
-            {/* SEÇÃO DE CUPOM DE DESCONTO STRIPE */}
-            <div className="bg-neutral-950/80 border border-neutral-800 rounded-2xl p-4 space-y-3">
-              <div className="flex items-center space-x-2 text-xs md:text-sm font-semibold text-neutral-200">
-                <Tag className="w-4 h-4 text-[#0071e3]" />
-                <span>Cupom de Desconto (Stripe)</span>
-              </div>
-
-              {cupomAplicado ? (
-                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3.5 flex items-center justify-between">
-                  <div className="flex items-center space-x-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <div>
-                      <span className="text-xs md:text-sm font-bold text-emerald-400 uppercase block">{cupomAplicado.code}</span>
-                      <span className="text-xs text-neutral-400">
-                        {cupomAplicado.percentOff 
-                          ? `${cupomAplicado.percentOff}% de desconto aplicado` 
-                          : `R$ ${cupomAplicado.amountOff?.toFixed(2).replace('.', ',')} de desconto`}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setCupomAplicado(null)}
-                    className="p-2 text-neutral-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
-                    title="Remover Cupom"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      placeholder="Código do cupom"
-                      value={cupomInput}
-                      onChange={(e) => setCupomInput(e.target.value.toUpperCase())}
-                      className="flex-1 bg-neutral-900 border border-neutral-800 focus:border-[#0071e3] rounded-xl px-3.5 py-2.5 text-xs md:text-sm text-white uppercase focus:outline-none placeholder:text-neutral-600 transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleValidarCupom}
-                      disabled={validandoCupom || !cupomInput.trim()}
-                      className="px-4 py-2.5 bg-neutral-800 hover:bg-[#0071e3] text-white text-xs md:text-sm font-bold rounded-xl transition-all disabled:opacity-40 cursor-pointer flex items-center justify-center shrink-0"
-                    >
-                      {validandoCupom ? (
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <span>Aplicar</span>
-                      )}
-                    </button>
-                  </div>
-
-                  {erroCupom && (
-                    <p className="text-xs text-red-400 flex items-center space-x-1.5">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      <span>{erroCupom}</span>
-                    </p>
-                  )}
-                  <p className="text-[11px] text-neutral-500 leading-relaxed">
-                    * Limite de 1 cupom por compra. Os cupons são validados na API da Stripe.
-                  </p>
-                </div>
-              )}
-            </div>
-
             {/* Resumo de Valores */}
-            <div className="space-y-3 text-xs md:text-sm text-neutral-300">
+            <div className="space-y-3.5 text-xs md:text-sm text-neutral-300">
               <div className="flex items-center justify-between">
                 <span>Playbook Visual (9 Módulos)</span>
                 <span className="font-bold text-white">Incluído</span>
@@ -596,6 +532,7 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                 </div>
               )}
 
+              {/* VALOR FINAL EXIBIDO NO TOPO DO RESUMO */}
               <div className="flex items-center justify-between border-t border-neutral-800 pt-4">
                 <span className="text-sm md:text-base font-bold text-white">Valor Final</span>
                 <div className="text-right">
@@ -610,6 +547,107 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                   <span className="text-xs text-emerald-400 font-bold">Acesso Vitalício sem Mensalidade</span>
                 </div>
               </div>
+            </div>
+
+            {/* SEÇÃO DE CUPOM DE DESCONTO ABAIXO DO PREÇO COM CHOICE CHIP & ANIMAÇÃO */}
+            <div className="pt-2">
+              {!mostrarCampoCupom && !cupomAplicado ? (
+                <button
+                  type="button"
+                  onClick={() => setMostrarCampoCupom(true)}
+                  className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-neutral-950 hover:bg-[#0071e3]/10 border border-neutral-800 hover:border-[#0071e3]/40 text-neutral-300 hover:text-[#00c7fc] text-xs md:text-sm font-semibold rounded-2xl transition-all cursor-pointer shadow-sm group"
+                >
+                  <Tag className="w-4 h-4 text-[#0071e3] group-hover:scale-110 transition-transform" />
+                  <span>Possui um cupom de desconto?</span>
+                </button>
+              ) : (
+                <AnimatePresence>
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, height: 'auto', scale: 1 }}
+                    exit={{ opacity: 0, height: 0, scale: 0.96 }}
+                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                    className="bg-neutral-950/90 border border-neutral-800 rounded-2xl p-4 space-y-3 overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2 text-xs md:text-sm font-semibold text-neutral-200">
+                        <Tag className="w-4 h-4 text-[#0071e3]" />
+                        <span>Cupom de Desconto (Stripe)</span>
+                      </div>
+                      {!cupomAplicado && (
+                        <button
+                          type="button"
+                          onClick={() => setMostrarCampoCupom(false)}
+                          className="text-[11px] text-neutral-500 hover:text-neutral-300 cursor-pointer font-medium"
+                        >
+                          Fechar
+                        </button>
+                      )}
+                    </div>
+
+                    {cupomAplicado ? (
+                      <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3.5 flex items-center justify-between">
+                        <div className="flex items-center space-x-2.5">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <div>
+                            <span className="text-xs md:text-sm font-bold text-emerald-400 uppercase block">{cupomAplicado.code}</span>
+                            <span className="text-xs text-neutral-400">
+                              {cupomAplicado.percentOff 
+                                ? `${cupomAplicado.percentOff}% de desconto aplicado` 
+                                : `R$ ${cupomAplicado.amountOff?.toFixed(2).replace('.', ',')} de desconto`}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCupomAplicado(null);
+                            setMostrarCampoCupom(false);
+                          }}
+                          className="p-2 text-neutral-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
+                          title="Remover Cupom"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex space-x-2">
+                          <input
+                            type="text"
+                            placeholder="Código do cupom"
+                            value={cupomInput}
+                            onChange={(e) => setCupomInput(e.target.value.toUpperCase())}
+                            className="flex-1 bg-neutral-900 border border-neutral-800 focus:border-[#0071e3] rounded-xl px-3.5 py-2.5 text-xs md:text-sm text-white uppercase focus:outline-none placeholder:text-neutral-600 transition-all"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleValidarCupom}
+                            disabled={validandoCupom || !cupomInput.trim()}
+                            className="px-4 py-2.5 bg-neutral-800 hover:bg-[#0071e3] text-white text-xs md:text-sm font-bold rounded-xl transition-all disabled:opacity-40 cursor-pointer flex items-center justify-center shrink-0"
+                          >
+                            {validandoCupom ? (
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <span>Aplicar</span>
+                            )}
+                          </button>
+                        </div>
+
+                        {erroCupom && (
+                          <p className="text-xs text-red-400 flex items-center space-x-1.5">
+                            <AlertCircle className="w-4 h-4 shrink-0" />
+                            <span>{erroCupom}</span>
+                          </p>
+                        )}
+                        <p className="text-[11px] text-neutral-500 leading-relaxed">
+                          * Limite de 1 cupom por compra. Os cupons são validados na API da Stripe.
+                        </p>
+                      </div>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              )}
             </div>
 
             <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-4 space-y-2 text-xs md:text-sm text-neutral-400">
