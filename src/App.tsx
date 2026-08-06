@@ -1082,14 +1082,6 @@ export default function App() {
                       <a href="#faq" className="text-xs font-medium text-neutral-600 hover:text-[#0071e3] transition-colors">Perguntas Frequentes</a>
                     </nav>
 
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={handleLogin}
-                        className="bg-[#0071e3] text-white text-xs px-4 py-2 rounded-full font-semibold hover:bg-[#147ce5] transition-colors flex items-center justify-center cursor-pointer shadow-md shadow-blue-500/10"
-                      >
-                        Login
-                      </button>
-                    </div>
                   </div>
                 </header>
 
