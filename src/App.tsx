@@ -67,6 +67,7 @@ import IdeationFlowchart from './components/IdeationFlowchart';
 import InteractiveIdeationTheory from './components/InteractiveIdeationTheory';
 import LiquidGlass from './components/LiquidGlass';
 import { handleStripeCheckout } from './lib/stripe';
+import { sanitizeText, rateLimiter } from './lib/security';
 
 const STORAGE_KEY = 'youtuber_pro_academy_progress';
 const LOGIN_KEY = 'youtuber_pro_academy_logged';
@@ -212,10 +213,15 @@ export default function App() {
   const saveToastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
 
-  // Auto-save user profile
+  // Auto-save user profile (com sanitização XSS)
   const updateUserProfile = (fields: Partial<UserProfile>) => {
+    const sanitizedFields: Partial<UserProfile> = {};
+    if (fields.firstName) sanitizedFields.firstName = sanitizeText(fields.firstName);
+    if (fields.lastName) sanitizedFields.lastName = sanitizeText(fields.lastName);
+    if (fields.email) sanitizedFields.email = sanitizeText(fields.email);
+
     setUserProfile(prev => {
-      const updated = { ...prev, ...fields };
+      const updated = { ...prev, ...fields, ...sanitizedFields };
       localStorage.setItem(PROFILE_KEY, JSON.stringify(updated));
       return updated;
     });
@@ -1050,7 +1056,13 @@ export default function App() {
 
                     <div>
                       <button 
-                        onClick={() => handleStripeCheckout('price_1U1M973VfcJ3qJcs97vRW0op')}
+                        onClick={() => {
+                          if (rateLimiter.isRateLimited('checkout', 4, 30000)) {
+                            alert('Muitas tentativas em pouco tempo. Por favor, aguarde alguns segundos.');
+                            return;
+                          }
+                          handleStripeCheckout('price_1U1M973VfcJ3qJcs97vRW0op');
+                        }}
                         className="w-full md:w-auto px-8 py-4 bg-[#0071e3] text-white rounded-full font-bold text-sm hover:scale-105 active:scale-95 shadow-lg shadow-blue-500/20 transition-all cursor-pointer text-center"
                       >
                         Começar Guia de Sobrevivência
@@ -1392,7 +1404,13 @@ export default function App() {
                   <section className="bg-neutral-900 text-white py-16 px-6 text-center rounded-3xl space-y-6">
                     <h2 className="text-3xl font-black tracking-tight max-w-xl mx-auto">Prepare seu set, destrave seu potencial criativo e comece hoje</h2>
                     <button 
-                      onClick={() => handleStripeCheckout('price_1U1M973VfcJ3qJcs97vRW0op')}
+                      onClick={() => {
+                        if (rateLimiter.isRateLimited('checkout', 4, 30000)) {
+                          alert('Muitas tentativas em pouco tempo. Por favor, aguarde alguns segundos.');
+                          return;
+                        }
+                        handleStripeCheckout('price_1U1M973VfcJ3qJcs97vRW0op');
+                      }}
                       className="px-10 py-5 bg-[#0071e3] text-white rounded-full font-black uppercase text-xs hover:scale-105 active:scale-95 shadow-lg shadow-blue-500/20 transition-all cursor-pointer text-center"
                     >
                       Garantir Minha Vaga No Guia
