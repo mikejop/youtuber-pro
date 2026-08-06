@@ -1,11 +1,5 @@
 import { loadStripe, Stripe } from '@stripe/stripe-js';
 
-/**
- * Client-Side Stripe Loader Singleton & Checkout Trigger
- * Security Note: Only VITE_STRIPE_PUBLISHABLE_KEY and VITE_STRIPE_PRICE_ID are loaded in browser environment.
- * The Secret Key (sk_live_...) MUST NEVER be referenced in client-side TypeScript.
- */
-
 let stripePromise: Promise<Stripe | null>;
 
 export const DEFAULT_PRICE_ID =
@@ -13,12 +7,10 @@ export const DEFAULT_PRICE_ID =
 
 export const getStripe = (): Promise<Stripe | null> => {
   if (!stripePromise) {
-    const publishableKey = (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY;
+    const publishableKey = (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_live_51U1LspVfcJ3qJcs9Nl7K2a';
 
     if (!publishableKey) {
-      console.warn(
-        '[Stripe Warning]: VITE_STRIPE_PUBLISHABLE_KEY is not defined in environment variables.'
-      );
+      console.warn('[Stripe Warning]: VITE_STRIPE_PUBLISHABLE_KEY is not defined.');
       return Promise.resolve(null);
     }
 
@@ -29,72 +21,43 @@ export const getStripe = (): Promise<Stripe | null> => {
 };
 
 /**
- * Trigger client-side Stripe Checkout session with official price_1U1M973VfcJ3qJcs97vRW0op
+ * Chama a Edge Function para criar um PaymentIntent seguro no backend Stripe
  */
-export const handleStripeCheckout = async (priceId: string = DEFAULT_PRICE_ID) => {
-  try {
-    const stripe = await getStripe();
-    if (!stripe) {
-      console.warn('[Stripe Warning]: Unable to load Stripe JS SDK.');
-      return;
-    }
-
-    const { error } = await (stripe as any).redirectToCheckout({
-      lineItems: [{ price: priceId, quantity: 1 }],
-      mode: 'payment',
-      successUrl: `${window.location.origin}/?checkout=success`,
-      cancelUrl: `${window.location.origin}/?checkout=canceled`,
-    });
-
-    if (error) {
-      console.error('[Stripe Checkout Error]:', error.message);
-    }
-  } catch (err) {
-    console.error('[Stripe Execution Error]:', err);
-  }
-};
-
-/**
- * Trigger Stripe Checkout session prefilled with Customer Registration data
- */
-export const handleStripeCheckoutWithCustomerData = async ({
-  priceId = DEFAULT_PRICE_ID,
+export const createPaymentIntentServer = async ({
   email,
   name,
   phone,
-  profession,
   cpfCnpj,
   address,
+  couponCode,
 }: {
-  priceId?: string;
   email: string;
   name: string;
   phone?: string;
-  profession?: string;
   cpfCnpj?: string;
   address?: string;
-}) => {
+  couponCode?: string;
+}): Promise<{ clientSecret: string; amount: number } | null> => {
   try {
-    const stripe = await getStripe();
-    if (!stripe) {
-      console.warn('[Stripe Warning]: Unable to load Stripe JS SDK.');
-      return;
-    }
-
-    const { error } = await (stripe as any).redirectToCheckout({
-      lineItems: [{ price: priceId, quantity: 1 }],
-      mode: 'payment',
-      customerEmail: email,
-      clientReferenceId: email,
-      successUrl: `${window.location.origin}/?checkout=success`,
-      cancelUrl: `${window.location.origin}/?checkout=canceled`,
+    const res = await fetch('https://txmaffxbrmxlzakxathe.supabase.co/functions/v1/create-payment-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, name, phone, cpfCnpj, address, couponCode }),
     });
 
-    if (error) {
-      console.error('[Stripe Checkout Error]:', error.message);
+    const data = await res.json();
+    if (data.clientSecret) {
+      return { clientSecret: data.clientSecret, amount: data.amount };
     }
+    console.error('Erro no createPaymentIntentServer:', data.error);
+    return null;
   } catch (err) {
-    console.error('[Stripe Execution Error]:', err);
+    console.error('Erro de rede no createPaymentIntentServer:', err);
+    return null;
   }
+};
+
+export const handleStripeCheckout = (_priceId?: string) => {
+  window.location.href = '/criar-conta';
 };
 

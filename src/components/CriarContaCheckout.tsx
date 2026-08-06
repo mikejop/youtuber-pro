@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { supabase } from '../lib/supabase';
-import { handleStripeCheckoutWithCustomerData, DEFAULT_PRICE_ID } from '../lib/stripe';
 import { rateLimiter, sanitizeText } from '../lib/security';
 import { 
   User, Mail, Lock, Phone, Briefcase, FileText, MapPin, 
   ArrowLeft, CreditCard, ShieldCheck, CheckCircle2, AlertCircle,
-  Tag, Trash2
+  Tag, Trash2, Sparkles
 } from 'lucide-react';
+
+const publishableKey = (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_live_51U1LspVfcJ3qJcs9Nl7K2a';
+const stripePromise = loadStripe(publishableKey);
 
 interface CriarContaCheckoutProps {
   onBackToMain?: () => void;
@@ -32,7 +36,11 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
   const [cidade, setCidade] = useState('');
   const [estado, setEstado] = useState('');
 
-  // Cupom State (Busca e Validação via Stripe API)
+  // Stripe Client Secret & Payment Intent State
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [carregandoIntent, setCarregandoIntent] = useState(false);
+
+  // Cupom State
   const [mostrarCampoCupom, setMostrarCampoCupom] = useState(false);
   const [cupomInput, setCupomInput] = useState('');
   const [cupomAplicado, setCupomAplicado] = useState<{
@@ -40,7 +48,6 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
     couponId: string;
     percentOff?: number | null;
     amountOff?: number | null;
-    name?: string;
   } | null>(null);
   const [validandoCupom, setValidandoCupom] = useState(false);
   const [erroCupom, setErroCupom] = useState<string | null>(null);
@@ -61,7 +68,38 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
   }
   const precoFinal = Math.max(0, BASE_PRICE - descontoCalculado);
 
-  // Função para validar o cupom na API da Stripe
+  // Criar PaymentIntent na API da Stripe ao inicializar a página ou alterar o cupom
+  const fetchPaymentIntent = async (codeCoupon?: string) => {
+    setCarregandoIntent(true);
+    try {
+      const res = await fetch('https://txmaffxbrmxlzakxathe.supabase.co/functions/v1/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          name: nome.trim(),
+          phone: telefone.trim(),
+          cpfCnpj: cpfCnpj.trim(),
+          address: `${logradouro}, ${numero} - ${bairro}, ${cidade}/${estado}`,
+          couponCode: codeCoupon || cupomAplicado?.code || '',
+        }),
+      });
+      const data = await res.json();
+      if (data.clientSecret) {
+        setClientSecret(data.clientSecret);
+      }
+    } catch (e) {
+      console.warn('Erro ao carregar PaymentIntent:', e);
+    } finally {
+      setCarregandoIntent(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPaymentIntent();
+  }, []);
+
+  // Validar Cupom via Stripe API
   const handleValidarCupom = async () => {
     const codeClean = cupomInput.trim().toUpperCase();
     if (!codeClean) return;
@@ -83,9 +121,10 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
           couponId: data.couponId,
           percentOff: data.percentOff,
           amountOff: data.amountOff,
-          name: data.name,
         });
         setCupomInput('');
+        // Recarrega o PaymentIntent com o novo desconto aplicado
+        await fetchPaymentIntent(data.code);
       } else {
         setErroCupom(data.message || 'Cupom inválido ou expirado.');
       }
@@ -156,84 +195,11 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErro(null);
-
-    if (rateLimiter.isRateLimited('criar-conta-checkout', 3, 60000)) {
-      setErro('Muitas tentativas em pouco tempo. Aguarde 1 minuto.');
-      return;
-    }
-
-    if (senha !== confirmarSenha) {
-      setErro('As senhas digitadas não coincidem.');
-      return;
-    }
-
-    if (senha.length < 6) {
-      setErro('A senha deve conter no mínimo 6 caracteres.');
-      return;
-    }
-
-    const emailSanitizado = sanitizeText(email).toLowerCase().trim();
-    const nomeSanitizado = sanitizeText(nome).trim();
-    const cpfSanitizado = sanitizeText(cpfCnpj).trim();
-
-    if (!emailSanitizado || !nomeSanitizado || !cpfSanitizado) {
-      setErro('Por favor, preencha todos os campos obrigatórios (Nome, E-mail e CPF/CNPJ).');
-      return;
-    }
-
-    setCarregando(true);
-
-    try {
-      // 1. Cadastrar usuário no Supabase Auth com metadata completa
-      const addressString = `${logradouro}, ${numero}${complemento ? ` (${complemento})` : ''} - ${bairro}, ${cidade}/${estado} - CEP ${cep}`;
-
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: emailSanitizado,
-        password: senha,
-        options: {
-          data: {
-            full_name: nomeSanitizado,
-            phone: telefone,
-            profession: profissao,
-            cpf_cnpj: cpfSanitizado,
-            address: addressString,
-            applied_coupon: cupomAplicado?.code || null,
-          },
-        },
-      });
-
-      if (authError && !authError.message.includes('User already registered')) {
-        console.warn('Nota Supabase Auth SignUp:', authError.message);
-      }
-
-      console.log('✅ Usuário registrado no Supabase Auth. Redirecionando para o Stripe Checkout...');
-
-      // 2. Redirecionar diretamente para o Checkout Seguro do Stripe com e-mail preenchido
-      await handleStripeCheckoutWithCustomerData({
-        priceId: DEFAULT_PRICE_ID,
-        email: emailSanitizado,
-        name: nomeSanitizado,
-        phone: telefone,
-        profession: profissao,
-        cpfCnpj: cpfSanitizado,
-        address: addressString,
-      });
-
-    } catch (err: any) {
-      console.error('❌ Erro no processo de criação de conta e checkout:', err);
-      setErro('Ocorreu um erro ao processar seu cadastro. Tente novamente.');
-      setCarregando(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-black text-white selection:bg-[#0071e3]/30 selection:text-white p-4 md:p-10 flex items-center justify-center">
       <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-12 gap-8 my-auto">
         
-        {/* Lado Esquerdo: Formulário de Cadastro */}
+        {/* Lado Esquerdo: Formulário Completo de Cadastro + Cartão de Crédito Integrado Stripe */}
         <div className="lg:col-span-7 bg-neutral-900/90 border border-neutral-800 rounded-[32px] p-6 md:p-10 backdrop-blur-2xl shadow-2xl space-y-8">
           
           <button
@@ -250,11 +216,12 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
               Criar Conta e Ativar Acesso
             </h1>
             <p className="text-sm md:text-base text-neutral-400 leading-relaxed font-normal">
-              Preencha seus dados para criar sua conta no YouTuber Pro e prosseguir para o pagamento seguro.
+              Preencha seus dados cadastrais e insira seu cartão de crédito para pagar com segurança via Stripe.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Form wrapper */}
+          <div className="space-y-6">
             
             {/* Seção 1: Dados Pessoais & Conta */}
             <div className="space-y-4">
@@ -476,31 +443,52 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
               </div>
             </div>
 
-            {erro && (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl text-xs md:text-sm flex items-start space-x-2.5">
-                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                <span>{erro}</span>
-              </div>
-            )}
+            {/* SEÇÃO 4: DADOS DO CARTÃO / PAGAMENTO INTEGRADO STRIPE */}
+            <div className="space-y-4 pt-4 border-t border-neutral-800/80">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-neutral-300 flex items-center space-x-2.5">
+                <CreditCard className="w-4 h-4 text-[#0071e3]" />
+                <span>Dados de Pagamento (Stripe API Direta)</span>
+              </h3>
 
-            <button
-              type="submit"
-              disabled={carregando}
-              className="w-full py-4 md:py-5 bg-[#0071e3] hover:bg-[#0077ed] active:scale-[0.99] text-white font-bold text-base md:text-lg rounded-2xl transition-all shadow-xl shadow-blue-500/25 cursor-pointer disabled:opacity-50 flex items-center justify-center space-x-3 mt-6"
-            >
-              {carregando ? (
-                <div className="flex items-center space-x-3">
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Criando Conta e Abrindo Checkout...</span>
-                </div>
+              {clientSecret ? (
+                <Elements
+                  stripe={stripePromise}
+                  options={{
+                    clientSecret,
+                    appearance: {
+                      theme: 'night',
+                      variables: {
+                        colorPrimary: '#0071e3',
+                        colorBackground: '#0a0a0a',
+                        colorText: '#ffffff',
+                        borderRadius: '16px',
+                        colorDanger: '#ff453a',
+                      },
+                    },
+                  }}
+                >
+                  <EmbeddedPaymentForm
+                    nome={nome}
+                    email={email}
+                    senha={senha}
+                    confirmarSenha={confirmarSenha}
+                    telefone={telefone}
+                    profissao={profissao}
+                    cpfCnpj={cpfCnpj}
+                    addressString={`${logradouro}, ${numero} - ${bairro}, ${cidade}/${estado} - CEP ${cep}`}
+                    appliedCoupon={cupomAplicado?.code || null}
+                    precoFinal={precoFinal}
+                  />
+                </Elements>
               ) : (
-                <>
-                  <CreditCard className="w-5 h-5" />
-                  <span>Criar Conta e Pagar no Stripe (R$ {precoFinal.toFixed(2).replace('.', ',')})</span>
-                </>
+                <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 text-center space-y-3">
+                  <div className="w-6 h-6 border-2 border-[#0071e3] border-t-transparent rounded-full animate-spin mx-auto" />
+                  <p className="text-xs text-neutral-400">Carregando formulário seguro da Stripe API...</p>
+                </div>
               )}
-            </button>
-          </form>
+            </div>
+
+          </div>
         </div>
 
         {/* Lado Direito: Resumo do Pedido, Preço & Choice Chip Cupom de Desconto com Animação */}
@@ -603,6 +591,7 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                           onClick={() => {
                             setCupomAplicado(null);
                             setMostrarCampoCupom(false);
+                            fetchPaymentIntent('');
                           }}
                           className="p-2 text-neutral-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
                           title="Remover Cupom"
@@ -653,10 +642,10 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
             <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-4 space-y-2 text-xs md:text-sm text-neutral-400">
               <div className="flex items-center space-x-2 text-white font-semibold">
                 <ShieldCheck className="w-4 h-4 text-[#30d158]" />
-                <span>Pagamento 100% Processado pela Stripe</span>
+                <span>Pagamento 100% Processado pela Stripe API</span>
               </div>
               <p className="text-xs leading-relaxed">
-                Seus dados de cartão de crédito e pagamento são criptografados e processados diretamente nos servidores seguros da Stripe. O YouTuber Pro guarda apenas seu cadastro e acesso de aluno no Supabase.
+                Seus dados de cartão de crédito são criptografados e processados diretamente nos servidores seguros da Stripe. O YouTuber Pro guarda apenas seu cadastro e acesso de aluno no Supabase.
               </p>
             </div>
 
@@ -676,5 +665,159 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
 
       </div>
     </div>
+  );
+}
+
+/**
+ * Componente interno com os Payment Elements nativos do Stripe React SDK
+ */
+function EmbeddedPaymentForm({
+  nome,
+  email,
+  senha,
+  confirmarSenha,
+  telefone,
+  profissao,
+  cpfCnpj,
+  addressString,
+  appliedCoupon,
+  precoFinal,
+}: {
+  nome: string;
+  email: string;
+  senha: string;
+  confirmarSenha: string;
+  telefone: string;
+  profissao: string;
+  cpfCnpj: string;
+  addressString: string;
+  appliedCoupon: string | null;
+  precoFinal: number;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const handlePayAndRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErro(null);
+
+    if (!stripe || !elements) {
+      setErro('A API do Stripe ainda está carregando. Por favor, aguarde alguns segundos.');
+      return;
+    }
+
+    if (rateLimiter.isRateLimited('criar-conta-checkout', 3, 60000)) {
+      setErro('Muitas tentativas em pouco tempo. Aguarde 1 minuto.');
+      return;
+    }
+
+    if (senha !== confirmarSenha) {
+      setErro('As senhas digitadas não coincidem.');
+      return;
+    }
+
+    if (senha.length < 6) {
+      setErro('A senha deve conter no mínimo 6 caracteres.');
+      return;
+    }
+
+    const emailSanitizado = sanitizeText(email).toLowerCase().trim();
+    const nomeSanitizado = sanitizeText(nome).trim();
+    const cpfSanitizado = sanitizeText(cpfCnpj).trim();
+
+    if (!emailSanitizado || !nomeSanitizado || !cpfSanitizado) {
+      setErro('Por favor, preencha todos os campos obrigatórios do cadastro (Nome, E-mail e CPF/CNPJ).');
+      return;
+    }
+
+    setCarregando(true);
+
+    try {
+      // 1. Cadastrar usuário no Supabase Auth com metadata completa
+      const { error: authError } = await supabase.auth.signUp({
+        email: emailSanitizado,
+        password: senha,
+        options: {
+          data: {
+            full_name: nomeSanitizado,
+            phone: telefone,
+            profession: profissao,
+            cpf_cnpj: cpfSanitizado,
+            address: addressString,
+            applied_coupon: appliedCoupon,
+          },
+        },
+      });
+
+      if (authError && !authError.message.includes('User already registered')) {
+        console.warn('Nota Supabase Auth SignUp:', authError.message);
+      }
+
+      console.log('✅ Usuário salvo no Supabase Auth. Confirmando pagamento diretamente na Stripe API...');
+
+      // 2. Confirmar Pagamento com os Elementos de Cartão Embutidos na Página via Stripe API
+      const { error: paymentError } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/?checkout=success`,
+          payment_method_data: {
+            billing_details: {
+              name: nomeSanitizado,
+              email: emailSanitizado,
+              phone: telefone,
+            },
+          },
+        },
+        redirect: 'if_required',
+      });
+
+      if (paymentError) {
+        console.error('❌ Erro na confirmação do Stripe Payment:', paymentError.message);
+        setErro(paymentError.message || 'Falha ao processar pagamento com cartão.');
+        setCarregando(false);
+      } else {
+        console.log('✅ Pagamento confirmado com sucesso via Stripe API!');
+        window.location.href = '/?checkout=success';
+      }
+    } catch (err: any) {
+      console.error('❌ Erro no processo de cadastro e pagamento:', err);
+      setErro('Ocorreu um erro ao finalizar o pagamento. Verifique os dados do cartão.');
+      setCarregando(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handlePayAndRegister} className="space-y-6">
+      <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-4 md:p-5 space-y-4">
+        <PaymentElement id="payment-element" options={{ layout: 'tabs' }} />
+      </div>
+
+      {erro && (
+        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl text-xs md:text-sm flex items-start space-x-2.5">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+          <span>{erro}</span>
+        </div>
+      )}
+
+      <button
+        type="submit"
+        disabled={carregando || !stripe}
+        className="w-full py-4 md:py-5 bg-[#0071e3] hover:bg-[#0077ed] active:scale-[0.99] text-white font-bold text-base md:text-lg rounded-2xl transition-all shadow-xl shadow-blue-500/25 cursor-pointer disabled:opacity-50 flex items-center justify-center space-x-3 mt-4"
+      >
+        {carregando ? (
+          <div className="flex items-center space-x-3">
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <span>Processando Pagamento na Stripe API...</span>
+          </div>
+        ) : (
+          <>
+            <CreditCard className="w-5 h-5" />
+            <span>Criar Conta e Pagar R$ {precoFinal.toFixed(2).replace('.', ',')}</span>
+          </>
+        )}
+      </button>
+    </form>
   );
 }

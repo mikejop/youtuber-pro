@@ -19,11 +19,8 @@ export default function StripeCheckoutModal({
   if (!isOpen) return null;
 
   const handleCheckoutClick = () => {
-    if (rateLimiter.isRateLimited('checkout-modal', 4, 30000)) {
-      alert('Muitas tentativas em pouco tempo. Por favor, aguarde alguns segundos.');
-      return;
-    }
-    handleStripeCheckout('price_1U1M973VfcJ3qJcs97vRW0op');
+    onClose();
+    window.location.href = '/criar-conta';
   };
 
   return (
