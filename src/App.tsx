@@ -5,7 +5,7 @@ import {
   Play, Clock, ArrowRight, Sparkles, CheckCircle2, Circle, Lock, 
   PanelLeftClose, PanelLeft, X, Search, Menu, Target, Wrench, 
   Image as ImageIcon, Shield, Star, GraduationCap, RefreshCw, Layers, Check, Copy, AlertTriangle, PlayCircle, BookOpen, Volume2,
-  Compass, Mic, Camera, Sun, Video, Scissors, Palette, Activity, Plus, Upload, User, LogOut, Mail, Phone, Eye, EyeOff, Trash2
+  Compass, Mic, Camera, Sun, Video, Scissors, Palette, Activity, Plus, Upload, User, LogIn, LogOut, Mail, Phone, Eye, EyeOff, Trash2
 } from 'lucide-react';
 import { modulesData } from './data';
 import { UserProgress, CourseModule, ModuleId, Subtopic } from './types';
@@ -68,6 +68,9 @@ import InteractiveIdeationTheory from './components/InteractiveIdeationTheory';
 import LiquidGlass from './components/LiquidGlass';
 import DefinirSenha from './components/DefinirSenha';
 import EsqueciSenha from './components/EsqueciSenha';
+import Preloader from './components/Preloader';
+import SupabaseLoginModal from './components/SupabaseLoginModal';
+import { supabase } from './lib/supabase';
 import { handleStripeCheckout } from './lib/stripe';
 import { sanitizeText, rateLimiter } from './lib/security';
 
@@ -179,6 +182,7 @@ export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isExclusiveModalOpen, setIsExclusiveModalOpen] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const [isSupabaseLoginOpen, setIsSupabaseLoginOpen] = useState<boolean>(false);
   const [copiedChallengeId, setCopiedChallengeId] = useState<string | null>(null);
   
   // Route state for /definir-senha and /esqueci-senha
@@ -298,6 +302,30 @@ export default function App() {
       setIsSidebarExpanded(false);
     }
 
+    // Check Supabase Auth active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setIsLoggedIn(true);
+        localStorage.setItem(LOGIN_KEY, 'true');
+        if (session.user.email) {
+          setUserProfile(prev => ({ ...prev, email: session.user.email || prev.email }));
+        }
+      }
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setIsLoggedIn(true);
+        localStorage.setItem(LOGIN_KEY, 'true');
+        if (session.user.email) {
+          setUserProfile(prev => ({ ...prev, email: session.user.email || prev.email }));
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setIsLoggedIn(false);
+        localStorage.setItem(LOGIN_KEY, 'false');
+      }
+    });
+
     // Protection Context Menu
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
@@ -361,7 +389,12 @@ export default function App() {
     setIsExclusiveModalOpen(false);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('Note on signOut:', e);
+    }
     setIsLoggedIn(false);
     localStorage.setItem(LOGIN_KEY, 'false');
     setActiveLessonId('');
@@ -574,6 +607,9 @@ export default function App() {
   return (
     <div className="h-screen w-screen bg-[#000000] text-[#f5f5f7] flex items-center justify-center font-sans overflow-hidden selection:bg-[#0071e3]/30 selection:text-white relative" id="app-viewport-root">
       
+      {/* High-End Page Preloader */}
+      <Preloader />
+
       {/* Background Geral (Vídeos WebM em Loop com Crossfade de 100ms) */}
       <div className="hidden md:block absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <AnimatePresence mode="popLayout">
@@ -938,7 +974,7 @@ export default function App() {
                 </button>
 
                 {/* Profile Avatar & Menu Dropdown (Visível somente quando logado) */}
-                {isLoggedIn && (
+                {isLoggedIn ? (
                   <div className="relative flex items-center gap-2" ref={profileMenuRef}>
                     <button
                       onClick={() => setIsProfileMenuOpen(prev => !prev)}
@@ -994,7 +1030,7 @@ export default function App() {
                                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-neutral-200 hover:text-white hover:bg-[#0071e3] transition-colors cursor-pointer text-left font-medium"
                               >
                                 <User size={15} />
-                                <span>Minha Conta</span>
+                               <span>Minha Conta</span>
                               </button>
 
                               {/* Sair option */}
@@ -1014,6 +1050,14 @@ export default function App() {
                       )}
                     </AnimatePresence>
                   </div>
+                ) : (
+                  <button
+                    onClick={() => setIsSupabaseLoginOpen(true)}
+                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white font-bold text-xs transition-all shadow-md shadow-blue-500/20 cursor-pointer"
+                  >
+                    <LogIn size={13} />
+                    <span>Entrar</span>
+                  </button>
                 )}
               </div>
 
@@ -2300,6 +2344,20 @@ export default function App() {
           </motion.div>
         </div>
       )}
+
+      {/* Supabase Auth Login Modal */}
+      <SupabaseLoginModal
+        isOpen={isSupabaseLoginOpen}
+        onClose={() => setIsSupabaseLoginOpen(false)}
+        onSuccessLogin={(email) => {
+          setIsLoggedIn(true);
+          localStorage.setItem(LOGIN_KEY, 'true');
+          updateUserProfile({ email });
+        }}
+        onNavigateForgotPassword={() => {
+          setCurrentRoute('esqueci-senha');
+        }}
+      />
 
     </div>
   );
