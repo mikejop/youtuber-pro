@@ -14,7 +14,7 @@ export default function StripeCheckoutModal({
   isOpen,
   onClose,
   title = "Desbloqueie o Acesso Completo ao YouTuber Pro",
-  description = "Você está tentando acessar um módulo exclusivo para alunos. Ative sua inscrição para liberar todos os 9 módulos, simuladores 3D e kits de aceleração.",
+  description = "Você está tentando acessar um módulo exclusivo para alunos. Ative sua inscrição para liberar o Playbook Visual e o Masterclass Exclusivo sobre Iluminação para YouTubers.",
 }: StripeCheckoutModalProps) {
   if (!isOpen) return null;
 
@@ -82,11 +82,11 @@ export default function StripeCheckoutModal({
           <div className="border-t border-neutral-900 pt-3 space-y-2 text-xs text-neutral-300">
             <div className="flex items-center space-x-2">
               <Check className="w-4 h-4 text-[#30d158] shrink-0" />
-              <span>Todos os 9 Módulos Práticos de Cinema & Edição</span>
+              <span>Playbook Visual Completo de Cinema & Edição</span>
             </div>
             <div className="flex items-center space-x-2">
               <Check className="w-4 h-4 text-[#30d158] shrink-0" />
-              <span>Simuladores 3D de Iluminação, CTR e Color Grading</span>
+              <span>1 Masterclass exclusivo sobre iluminação para YouTubers</span>
             </div>
             <div className="flex items-center space-x-2">
               <Check className="w-4 h-4 text-[#30d158] shrink-0" />

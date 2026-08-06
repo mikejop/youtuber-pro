@@ -511,17 +511,17 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
             <div className="border-b border-neutral-800 pb-4">
               <span className="text-xs font-bold text-[#00c7fc] uppercase tracking-widest block mb-1">RESUMO DO PEDIDO</span>
               <h2 className="text-2xl font-extrabold text-white">YouTuber Pro Academy</h2>
-              <p className="text-xs md:text-sm text-neutral-400">Guia de Sobrevivência & Simuladores 3D</p>
+              <p className="text-xs md:text-sm text-neutral-400">Guia de Sobrevivência & Masterclass Exclusivo</p>
             </div>
 
             {/* Resumo de Valores */}
             <div className="space-y-3.5 text-xs md:text-sm text-neutral-300">
               <div className="flex items-center justify-between">
-                <span>Playbook Visual (9 Módulos)</span>
+                <span>Playbook Visual</span>
                 <span className="font-bold text-white">Incluído</span>
               </div>
               <div className="flex items-center justify-between">
-                <span>Simuladores 3D de Luz, CTR & Cor</span>
+                <span>1 Masterclass exclusivo sobre iluminação para YouTubers</span>
                 <span className="font-bold text-white">Incluído</span>
               </div>
 
