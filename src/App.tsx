@@ -185,7 +185,7 @@ export default function App() {
   const [currentRoute, setCurrentRoute] = useState<string>(() => {
     const path = window.location.pathname.toLowerCase();
     const hash = window.location.hash.toLowerCase();
-    if (path.includes('/definir-senha') || hash.includes('type=recovery') || hash.includes('type=invite') || hash.includes('access_token=')) {
+    if (path.includes('/definir-senha') || hash.includes('type=recovery') || hash.includes('type=invite')) {
       return 'definir-senha';
     }
     if (path.includes('/esqueci-senha')) {
