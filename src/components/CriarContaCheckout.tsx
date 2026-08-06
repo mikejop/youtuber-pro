@@ -4,8 +4,8 @@ import { handleStripeCheckoutWithCustomerData, DEFAULT_PRICE_ID } from '../lib/s
 import { rateLimiter, sanitizeText } from '../lib/security';
 import { 
   User, Mail, Lock, Phone, Briefcase, FileText, MapPin, 
-  ArrowLeft, CreditCard, ShieldCheck, CheckCircle2, Sparkles, AlertCircle,
-  Tag, Check, Trash2, Percent
+  ArrowLeft, CreditCard, ShieldCheck, CheckCircle2, AlertCircle,
+  Tag, Trash2
 } from 'lucide-react';
 
 interface CriarContaCheckoutProps {
@@ -228,47 +228,43 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
   };
 
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-[#0071e3]/30 selection:text-white p-4 md:p-8 flex items-center justify-center">
-      <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-12 gap-8 my-auto">
+    <div className="min-h-screen bg-black text-white selection:bg-[#0071e3]/30 selection:text-white p-4 md:p-10 flex items-center justify-center">
+      <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-12 gap-8 my-auto">
         
-        {/* Lado Esquerdo: Formulário de Cadastro */}
-        <div className="lg:col-span-7 bg-neutral-900/90 border border-neutral-800 rounded-3xl p-6 md:p-8 backdrop-blur-2xl shadow-2xl space-y-6">
+        {/* Lado Esquerdo: Formulário de Cadastro (Estilo Apple.com Spacing & High Legibility) */}
+        <div className="lg:col-span-7 bg-neutral-900/90 border border-neutral-800 rounded-[32px] p-6 md:p-10 backdrop-blur-2xl shadow-2xl space-y-8">
           
           <button
             type="button"
             onClick={() => (onBackToMain ? onBackToMain() : (window.location.href = '/'))}
-            className="flex items-center space-x-2 text-xs text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            className="inline-flex items-center space-x-2 text-sm text-neutral-400 hover:text-white transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Voltar para o site</span>
           </button>
 
-          <div className="space-y-1.5 border-b border-neutral-800 pb-4">
-            <div className="inline-flex items-center space-x-1.5 px-3 py-1 bg-[#0071e3]/10 border border-[#0071e3]/30 text-[#0071e3] text-[11px] font-bold rounded-full uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Inscrição Oficial</span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
+          <div className="space-y-2 border-b border-neutral-800 pb-6">
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">
               Criar Conta e Ativar Acesso
             </h1>
-            <p className="text-xs text-neutral-400">
+            <p className="text-sm md:text-base text-neutral-400 leading-relaxed font-normal">
               Preencha seus dados para criar sua conta no YouTuber Pro e prosseguir para o pagamento seguro.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             
             {/* Seção 1: Dados Pessoais & Conta */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 flex items-center space-x-2">
-                <User className="w-3.5 h-3.5 text-[#0071e3]" />
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-neutral-300 flex items-center space-x-2.5">
+                <User className="w-4 h-4 text-[#0071e3]" />
                 <span>Dados da Conta</span>
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Nome Completo */}
-                <div className="space-y-1 md:col-span-2">
-                  <label className="text-[11px] font-semibold text-neutral-300">Nome Completo *</label>
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs md:text-sm font-semibold text-neutral-200">Nome Completo *</label>
                   <div className="relative">
                     <input
                       type="text"
@@ -276,15 +272,15 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                       value={nome}
                       onChange={(e) => setNome(e.target.value)}
                       required
-                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none placeholder:text-neutral-600"
+                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 rounded-2xl px-4 py-3.5 text-sm md:text-base text-white focus:outline-none placeholder:text-neutral-600 transition-all"
                     />
-                    <User className="w-4 h-4 text-neutral-500 absolute right-3 top-3 pointer-events-none" />
+                    <User className="w-5 h-5 text-neutral-500 absolute right-4 top-4 pointer-events-none" />
                   </div>
                 </div>
 
                 {/* E-mail */}
-                <div className="space-y-1 md:col-span-2">
-                  <label className="text-[11px] font-semibold text-neutral-300">E-mail Cadastrado *</label>
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs md:text-sm font-semibold text-neutral-200">E-mail Cadastrado *</label>
                   <div className="relative">
                     <input
                       type="email"
@@ -292,15 +288,15 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none placeholder:text-neutral-600"
+                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 rounded-2xl px-4 py-3.5 text-sm md:text-base text-white focus:outline-none placeholder:text-neutral-600 transition-all"
                     />
-                    <Mail className="w-4 h-4 text-neutral-500 absolute right-3 top-3 pointer-events-none" />
+                    <Mail className="w-5 h-5 text-neutral-500 absolute right-4 top-4 pointer-events-none" />
                   </div>
                 </div>
 
                 {/* Senha */}
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-neutral-300">Senha de Acesso *</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs md:text-sm font-semibold text-neutral-200">Senha de Acesso *</label>
                   <div className="relative">
                     <input
                       type="password"
@@ -309,15 +305,15 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                       onChange={(e) => setSenha(e.target.value)}
                       required
                       minLength={6}
-                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none placeholder:text-neutral-600"
+                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 rounded-2xl px-4 py-3.5 text-sm md:text-base text-white focus:outline-none placeholder:text-neutral-600 transition-all"
                     />
-                    <Lock className="w-4 h-4 text-neutral-500 absolute right-3 top-3 pointer-events-none" />
+                    <Lock className="w-5 h-5 text-neutral-500 absolute right-4 top-4 pointer-events-none" />
                   </div>
                 </div>
 
                 {/* Confirmar Senha */}
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-neutral-300">Confirmar Senha *</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs md:text-sm font-semibold text-neutral-200">Confirmar Senha *</label>
                   <div className="relative">
                     <input
                       type="password"
@@ -326,25 +322,25 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                       onChange={(e) => setConfirmarSenha(e.target.value)}
                       required
                       minLength={6}
-                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none placeholder:text-neutral-600"
+                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 rounded-2xl px-4 py-3.5 text-sm md:text-base text-white focus:outline-none placeholder:text-neutral-600 transition-all"
                     />
-                    <Lock className="w-4 h-4 text-neutral-500 absolute right-3 top-3 pointer-events-none" />
+                    <Lock className="w-5 h-5 text-neutral-500 absolute right-4 top-4 pointer-events-none" />
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Seção 2: Documento & Profissão */}
-            <div className="space-y-3 pt-2 border-t border-neutral-800/80">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 flex items-center space-x-2">
-                <FileText className="w-3.5 h-3.5 text-[#0071e3]" />
+            <div className="space-y-4 pt-4 border-t border-neutral-800/80">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-neutral-300 flex items-center space-x-2.5">
+                <FileText className="w-4 h-4 text-[#0071e3]" />
                 <span>Documentos & Profissão</span>
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* CPF/CNPJ */}
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-neutral-300">CPF ou CNPJ *</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs md:text-sm font-semibold text-neutral-200">CPF ou CNPJ *</label>
                   <div className="relative">
                     <input
                       type="text"
@@ -352,14 +348,14 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                       value={cpfCnpj}
                       onChange={handleCpfCnpjChange}
                       required
-                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none placeholder:text-neutral-600"
+                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 rounded-2xl px-4 py-3.5 text-sm md:text-base text-white focus:outline-none placeholder:text-neutral-600 transition-all"
                     />
                   </div>
                 </div>
 
                 {/* Telefone */}
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-neutral-300">Telefone / WhatsApp *</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs md:text-sm font-semibold text-neutral-200">Telefone / WhatsApp *</label>
                   <div className="relative">
                     <input
                       type="text"
@@ -367,120 +363,120 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                       value={telefone}
                       onChange={handleTelefoneChange}
                       required
-                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none placeholder:text-neutral-600"
+                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 rounded-2xl px-4 py-3.5 text-sm md:text-base text-white focus:outline-none placeholder:text-neutral-600 transition-all"
                     />
-                    <Phone className="w-3.5 h-3.5 text-neutral-500 absolute right-3 top-3 pointer-events-none" />
+                    <Phone className="w-4 h-4 text-neutral-500 absolute right-4 top-4 pointer-events-none" />
                   </div>
                 </div>
 
                 {/* Profissão */}
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-neutral-300">Profissão / Ocupação</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs md:text-sm font-semibold text-neutral-200">Profissão / Ocupação</label>
                   <div className="relative">
                     <input
                       type="text"
                       placeholder="Ex: Videomaker, YouTuber"
                       value={profissao}
                       onChange={(e) => setProfissao(e.target.value)}
-                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none placeholder:text-neutral-600"
+                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 rounded-2xl px-4 py-3.5 text-sm md:text-base text-white focus:outline-none placeholder:text-neutral-600 transition-all"
                     />
-                    <Briefcase className="w-3.5 h-3.5 text-neutral-500 absolute right-3 top-3 pointer-events-none" />
+                    <Briefcase className="w-4 h-4 text-neutral-500 absolute right-4 top-4 pointer-events-none" />
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Seção 3: Endereço Completo */}
-            <div className="space-y-3 pt-2 border-t border-neutral-800/80">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 flex items-center space-x-2">
-                <MapPin className="w-3.5 h-3.5 text-[#0071e3]" />
+            <div className="space-y-4 pt-4 border-t border-neutral-800/80">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-neutral-300 flex items-center space-x-2.5">
+                <MapPin className="w-4 h-4 text-[#0071e3]" />
                 <span>Endereço Completo</span>
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                 {/* CEP */}
-                <div className="space-y-1 md:col-span-2">
-                  <label className="text-[11px] font-semibold text-neutral-300">CEP</label>
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs md:text-sm font-semibold text-neutral-200">CEP</label>
                   <div className="relative">
                     <input
                       type="text"
                       placeholder="00000-000"
                       value={cep}
                       onChange={handleCepChange}
-                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none placeholder:text-neutral-600"
+                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 rounded-2xl px-4 py-3.5 text-sm md:text-base text-white focus:outline-none placeholder:text-neutral-600 transition-all"
                     />
                     {buscandoCep && (
-                      <div className="w-3.5 h-3.5 border-2 border-[#0071e3] border-t-transparent rounded-full animate-spin absolute right-3 top-3" />
+                      <div className="w-4 h-4 border-2 border-[#0071e3] border-t-transparent rounded-full animate-spin absolute right-4 top-4" />
                     )}
                   </div>
                 </div>
 
                 {/* Logradouro */}
-                <div className="space-y-1 md:col-span-4">
-                  <label className="text-[11px] font-semibold text-neutral-300">Rua / Avenida</label>
+                <div className="space-y-1.5 md:col-span-4">
+                  <label className="text-xs md:text-sm font-semibold text-neutral-200">Rua / Avenida</label>
                   <input
                     type="text"
                     placeholder="Nome da rua ou avenida"
                     value={logradouro}
                     onChange={(e) => setLogradouro(e.target.value)}
-                    className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none placeholder:text-neutral-600"
+                    className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 rounded-2xl px-4 py-3.5 text-sm md:text-base text-white focus:outline-none placeholder:text-neutral-600 transition-all"
                   />
                 </div>
 
                 {/* Número */}
-                <div className="space-y-1 md:col-span-2">
-                  <label className="text-[11px] font-semibold text-neutral-300">Número</label>
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs md:text-sm font-semibold text-neutral-200">Número</label>
                   <input
                     type="text"
                     placeholder="123"
                     value={numero}
                     onChange={(e) => setNumero(e.target.value)}
-                    className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none placeholder:text-neutral-600"
+                    className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 rounded-2xl px-4 py-3.5 text-sm md:text-base text-white focus:outline-none placeholder:text-neutral-600 transition-all"
                   />
                 </div>
 
                 {/* Complemento */}
-                <div className="space-y-1 md:col-span-4">
-                  <label className="text-[11px] font-semibold text-neutral-300">Complemento / Bairro</label>
+                <div className="space-y-1.5 md:col-span-4">
+                  <label className="text-xs md:text-sm font-semibold text-neutral-200">Complemento / Bairro</label>
                   <input
                     type="text"
                     placeholder="Apto, Bloco, Bairro"
                     value={bairro}
                     onChange={(e) => setBairro(e.target.value)}
-                    className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none placeholder:text-neutral-600"
+                    className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 rounded-2xl px-4 py-3.5 text-sm md:text-base text-white focus:outline-none placeholder:text-neutral-600 transition-all"
                   />
                 </div>
 
                 {/* Cidade */}
-                <div className="space-y-1 md:col-span-4">
-                  <label className="text-[11px] font-semibold text-neutral-300">Cidade</label>
+                <div className="space-y-1.5 md:col-span-4">
+                  <label className="text-xs md:text-sm font-semibold text-neutral-200">Cidade</label>
                   <input
                     type="text"
                     placeholder="Cidade"
                     value={cidade}
                     onChange={(e) => setCidade(e.target.value)}
-                    className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none placeholder:text-neutral-600"
+                    className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 rounded-2xl px-4 py-3.5 text-sm md:text-base text-white focus:outline-none placeholder:text-neutral-600 transition-all"
                   />
                 </div>
 
                 {/* Estado */}
-                <div className="space-y-1 md:col-span-2">
-                  <label className="text-[11px] font-semibold text-neutral-300">UF</label>
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs md:text-sm font-semibold text-neutral-200">UF</label>
                   <input
                     type="text"
                     placeholder="SP"
                     maxLength={2}
                     value={estado}
                     onChange={(e) => setEstado(e.target.value.toUpperCase())}
-                    className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] rounded-xl px-3 py-2.5 text-xs text-white uppercase focus:outline-none placeholder:text-neutral-600"
+                    className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 rounded-2xl px-4 py-3.5 text-sm md:text-base text-white uppercase focus:outline-none placeholder:text-neutral-600 transition-all"
                   />
                 </div>
               </div>
             </div>
 
             {erro && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs flex items-start space-x-2">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl text-xs md:text-sm flex items-start space-x-2.5">
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                 <span>{erro}</span>
               </div>
             )}
@@ -488,16 +484,16 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
             <button
               type="submit"
               disabled={carregando}
-              className="w-full py-4 bg-[#0071e3] hover:bg-[#0077ed] active:scale-95 text-white font-bold text-sm rounded-xl transition-all shadow-xl shadow-blue-500/25 cursor-pointer disabled:opacity-50 flex items-center justify-center space-x-2 mt-4"
+              className="w-full py-4 md:py-5 bg-[#0071e3] hover:bg-[#0077ed] active:scale-[0.99] text-white font-bold text-base md:text-lg rounded-2xl transition-all shadow-xl shadow-blue-500/25 cursor-pointer disabled:opacity-50 flex items-center justify-center space-x-3 mt-6"
             >
               {carregando ? (
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="flex items-center space-x-3">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   <span>Criando Conta e Abrindo Checkout...</span>
                 </div>
               ) : (
                 <>
-                  <CreditCard className="w-4 h-4" />
+                  <CreditCard className="w-5 h-5" />
                   <span>Criar Conta e Pagar no Stripe (R$ {precoFinal.toFixed(2).replace('.', ',')})</span>
                 </>
               )}
@@ -508,28 +504,28 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
         {/* Lado Direito: Resumo do Pedido, Cupom de Desconto & Garantia */}
         <div className="lg:col-span-5 space-y-6 flex flex-col justify-between">
           
-          <div className="bg-neutral-900/90 border border-neutral-800 rounded-3xl p-6 md:p-8 backdrop-blur-2xl shadow-2xl space-y-6">
+          <div className="bg-neutral-900/90 border border-neutral-800 rounded-[32px] p-6 md:p-8 backdrop-blur-2xl shadow-2xl space-y-6">
             
             <div className="border-b border-neutral-800 pb-4">
-              <span className="text-[10px] font-bold text-[#00c7fc] uppercase tracking-widest block mb-1">RESUMO DO PEDIDO</span>
-              <h2 className="text-xl font-black text-white">YouTuber Pro Academy</h2>
-              <p className="text-xs text-neutral-400">Guia de Sobrevivência & Simuladores 3D</p>
+              <span className="text-xs font-bold text-[#00c7fc] uppercase tracking-widest block mb-1">RESUMO DO PEDIDO</span>
+              <h2 className="text-2xl font-extrabold text-white">YouTuber Pro Academy</h2>
+              <p className="text-xs md:text-sm text-neutral-400">Guia de Sobrevivência & Simuladores 3D</p>
             </div>
 
             {/* SEÇÃO DE CUPOM DE DESCONTO STRIPE */}
             <div className="bg-neutral-950/80 border border-neutral-800 rounded-2xl p-4 space-y-3">
-              <div className="flex items-center space-x-2 text-xs font-semibold text-neutral-300">
+              <div className="flex items-center space-x-2 text-xs md:text-sm font-semibold text-neutral-200">
                 <Tag className="w-4 h-4 text-[#0071e3]" />
                 <span>Cupom de Desconto (Stripe)</span>
               </div>
 
               {cupomAplicado ? (
-                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3.5 flex items-center justify-between">
+                  <div className="flex items-center space-x-2.5">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     <div>
-                      <span className="text-xs font-bold text-emerald-400 uppercase block">{cupomAplicado.code}</span>
-                      <span className="text-[10px] text-neutral-400">
+                      <span className="text-xs md:text-sm font-bold text-emerald-400 uppercase block">{cupomAplicado.code}</span>
+                      <span className="text-xs text-neutral-400">
                         {cupomAplicado.percentOff 
                           ? `${cupomAplicado.percentOff}% de desconto aplicado` 
                           : `R$ ${cupomAplicado.amountOff?.toFixed(2).replace('.', ',')} de desconto`}
@@ -539,7 +535,7 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                   <button
                     type="button"
                     onClick={() => setCupomAplicado(null)}
-                    className="p-1.5 text-neutral-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
+                    className="p-2 text-neutral-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
                     title="Remover Cupom"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -550,19 +546,19 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                   <div className="flex space-x-2">
                     <input
                       type="text"
-                      placeholder="Código do cupom (ex: PROMO10)"
+                      placeholder="Código do cupom"
                       value={cupomInput}
                       onChange={(e) => setCupomInput(e.target.value.toUpperCase())}
-                      className="flex-1 bg-neutral-900 border border-neutral-800 focus:border-[#0071e3] rounded-xl px-3 py-2 text-xs text-white uppercase focus:outline-none placeholder:text-neutral-600"
+                      className="flex-1 bg-neutral-900 border border-neutral-800 focus:border-[#0071e3] rounded-xl px-3.5 py-2.5 text-xs md:text-sm text-white uppercase focus:outline-none placeholder:text-neutral-600 transition-all"
                     />
                     <button
                       type="button"
                       onClick={handleValidarCupom}
                       disabled={validandoCupom || !cupomInput.trim()}
-                      className="px-4 py-2 bg-neutral-800 hover:bg-[#0071e3] text-white text-xs font-bold rounded-xl transition-all disabled:opacity-40 cursor-pointer flex items-center justify-center shrink-0"
+                      className="px-4 py-2.5 bg-neutral-800 hover:bg-[#0071e3] text-white text-xs md:text-sm font-bold rounded-xl transition-all disabled:opacity-40 cursor-pointer flex items-center justify-center shrink-0"
                     >
                       {validandoCupom ? (
-                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       ) : (
                         <span>Aplicar</span>
                       )}
@@ -570,20 +566,20 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                   </div>
 
                   {erroCupom && (
-                    <p className="text-[11px] text-red-400 flex items-center space-x-1">
-                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <p className="text-xs text-red-400 flex items-center space-x-1.5">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
                       <span>{erroCupom}</span>
                     </p>
                   )}
-                  <p className="text-[10px] text-neutral-500 leading-relaxed">
-                    * Limite de 1 cupom por compra. Os cupons são validados diretamente na API da Stripe.
+                  <p className="text-[11px] text-neutral-500 leading-relaxed">
+                    * Limite de 1 cupom por compra. Os cupons são validados na API da Stripe.
                   </p>
                 </div>
               )}
             </div>
 
             {/* Resumo de Valores */}
-            <div className="space-y-3 text-xs text-neutral-300">
+            <div className="space-y-3 text-xs md:text-sm text-neutral-300">
               <div className="flex items-center justify-between">
                 <span>Playbook Visual (9 Módulos)</span>
                 <span className="font-bold text-white">Incluído</span>
@@ -594,39 +590,39 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
               </div>
 
               {cupomAplicado && descontoCalculado > 0 && (
-                <div className="flex items-center justify-between text-emerald-400 font-semibold border-t border-neutral-800/80 pt-2">
+                <div className="flex items-center justify-between text-emerald-400 font-semibold border-t border-neutral-800/80 pt-2.5">
                   <span>Desconto ({cupomAplicado.code})</span>
                   <span>- R$ {descontoCalculado.toFixed(2).replace('.', ',')}</span>
                 </div>
               )}
 
-              <div className="flex items-center justify-between border-t border-neutral-800 pt-3">
-                <span className="text-sm font-bold text-white">Valor Final</span>
+              <div className="flex items-center justify-between border-t border-neutral-800 pt-4">
+                <span className="text-sm md:text-base font-bold text-white">Valor Final</span>
                 <div className="text-right">
                   <div className="flex items-baseline space-x-2 justify-end">
                     {descontoCalculado > 0 && (
                       <span className="text-xs text-neutral-500 line-through">R$ {BASE_PRICE.toFixed(2).replace('.', ',')}</span>
                     )}
-                    <span className="text-2xl font-black text-white block">
+                    <span className="text-2xl md:text-3xl font-black text-white block">
                       R$ {precoFinal.toFixed(2).replace('.', ',')}
                     </span>
                   </div>
-                  <span className="text-[10px] text-emerald-400 font-bold">Acesso Vitalício sem Mensalidade</span>
+                  <span className="text-xs text-emerald-400 font-bold">Acesso Vitalício sem Mensalidade</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-4 space-y-2 text-xs text-neutral-400">
+            <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-4 space-y-2 text-xs md:text-sm text-neutral-400">
               <div className="flex items-center space-x-2 text-white font-semibold">
                 <ShieldCheck className="w-4 h-4 text-[#30d158]" />
                 <span>Pagamento 100% Processado pela Stripe</span>
               </div>
-              <p className="text-[11px] leading-relaxed">
+              <p className="text-xs leading-relaxed">
                 Seus dados de cartão de crédito e pagamento são criptografados e processados diretamente nos servidores seguros da Stripe. O YouTuber Pro guarda apenas seu cadastro e acesso de aluno no Supabase.
               </p>
             </div>
 
-            <div className="space-y-2 text-[11px] text-neutral-400">
+            <div className="space-y-2 text-xs text-neutral-400">
               <div className="flex items-center space-x-2">
                 <CheckCircle2 className="w-4 h-4 text-[#30d158] shrink-0" />
                 <span>Garantia incondicional de reembolso por 7 dias</span>
