@@ -510,8 +510,8 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
             
             <div className="border-b border-neutral-800 pb-4">
               <span className="text-xs font-bold text-[#00c7fc] uppercase tracking-widest block mb-1">RESUMO DO PEDIDO</span>
-              <h2 className="text-2xl font-extrabold text-white">YouTuber Pro Academy</h2>
-              <p className="text-xs md:text-sm text-neutral-400">Guia de Sobrevivência & Masterclass Exclusivo</p>
+              <h2 className="text-2xl font-extrabold text-white">YouTuber Pro</h2>
+              <p className="text-xs md:text-sm text-neutral-400">Um Produto Dojo Academy</p>
             </div>
 
             {/* Resumo de Valores */}

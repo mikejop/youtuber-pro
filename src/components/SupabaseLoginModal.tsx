@@ -99,7 +99,7 @@ export default function SupabaseLoginModal({
           </div>
           <div>
             <h2 className="text-xl font-bold text-white">Entrar na Plataforma</h2>
-            <p className="text-xs text-neutral-400">YouTuber Pro Academy</p>
+            <p className="text-xs text-neutral-400">YouTuber Pro</p>
           </div>
         </div>
 

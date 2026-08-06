@@ -143,7 +143,7 @@ export default function DefinirSenha({ onSuccessRedirect }: DefinirSenhaProps) {
           </div>
           <div>
             <h2 className="text-xl font-bold">Defina sua Senha</h2>
-            <p className="text-xs text-neutral-400">YouTuber Pro Academy</p>
+            <p className="text-xs text-neutral-400">YouTuber Pro</p>
           </div>
         </div>
 
