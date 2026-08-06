@@ -53,3 +53,48 @@ export const handleStripeCheckout = async (priceId: string = DEFAULT_PRICE_ID) =
     console.error('[Stripe Execution Error]:', err);
   }
 };
+
+/**
+ * Trigger Stripe Checkout session prefilled with Customer Registration data
+ */
+export const handleStripeCheckoutWithCustomerData = async ({
+  priceId = DEFAULT_PRICE_ID,
+  email,
+  name,
+  phone,
+  profession,
+  cpfCnpj,
+  address,
+}: {
+  priceId?: string;
+  email: string;
+  name: string;
+  phone?: string;
+  profession?: string;
+  cpfCnpj?: string;
+  address?: string;
+}) => {
+  try {
+    const stripe = await getStripe();
+    if (!stripe) {
+      console.warn('[Stripe Warning]: Unable to load Stripe JS SDK.');
+      return;
+    }
+
+    const { error } = await (stripe as any).redirectToCheckout({
+      lineItems: [{ price: priceId, quantity: 1 }],
+      mode: 'payment',
+      customerEmail: email,
+      clientReferenceId: email,
+      successUrl: `${window.location.origin}/?checkout=success`,
+      cancelUrl: `${window.location.origin}/?checkout=canceled`,
+    });
+
+    if (error) {
+      console.error('[Stripe Checkout Error]:', error.message);
+    }
+  } catch (err) {
+    console.error('[Stripe Execution Error]:', err);
+  }
+};
+

@@ -68,6 +68,7 @@ import InteractiveIdeationTheory from './components/InteractiveIdeationTheory';
 import LiquidGlass from './components/LiquidGlass';
 import DefinirSenha from './components/DefinirSenha';
 import EsqueciSenha from './components/EsqueciSenha';
+import CriarContaCheckout from './components/CriarContaCheckout';
 import Preloader from './components/Preloader';
 import SupabaseLoginModal from './components/SupabaseLoginModal';
 import StripeCheckoutModal from './components/StripeCheckoutModal';
@@ -189,6 +190,9 @@ export default function App() {
     }
     if (path.includes('/esqueci-senha')) {
       return 'esqueci-senha';
+    }
+    if (path.includes('/criar-conta')) {
+      return 'criar-conta';
     }
     return 'main';
   });
@@ -591,6 +595,10 @@ export default function App() {
 
   if (currentRoute === 'esqueci-senha') {
     return <EsqueciSenha onBackToLogin={() => setCurrentRoute('main')} />;
+  }
+
+  if (currentRoute === 'criar-conta') {
+    return <CriarContaCheckout onBackToMain={() => setCurrentRoute('main')} />;
   }
 
   // Flyout on hover for collapsed sidebar

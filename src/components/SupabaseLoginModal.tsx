@@ -236,6 +236,20 @@ export default function SupabaseLoginModal({
             )}
           </button>
         </form>
+
+        {/* Rodapé: Criar Conta */}
+        <div className="pt-3 border-t border-neutral-800 text-center">
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              window.location.href = '/criar-conta';
+            }}
+            className="text-xs text-neutral-400 hover:text-white transition-colors cursor-pointer"
+          >
+            Ainda não tem conta? <strong className="text-[#0071e3] hover:underline">Criar Conta e Assinar</strong>
+          </button>
+        </div>
       </div>
     </div>
   );
