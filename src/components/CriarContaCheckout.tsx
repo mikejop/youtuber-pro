@@ -1032,7 +1032,7 @@ function PicPayPaymentSection({
             Pix
           </div>
           <div>
-            <h4 className="text-sm font-bold text-white leading-tight">Pix via PicPay</h4>
+            <h4 className="text-sm font-bold text-white leading-tight">Pix</h4>
             <p className="text-[11px] text-neutral-400">Aprovação instantânea de acesso</p>
           </div>
         </div>
@@ -1044,7 +1044,7 @@ function PicPayPaymentSection({
       {!picpayData ? (
         <div className="space-y-4">
           <p className="text-xs text-neutral-300 leading-relaxed">
-            Ao clicar abaixo, será gerado o QR Code e a chave Copia e Cola do Pix processados pelo **PicPay**. Seu acesso ao **YouTuber Pro** é liberado automaticamente após a confirmação.
+            Ao clicar abaixo, será gerado o QR Code e a chave Copia e Cola do Pix. Seu acesso ao <strong>YouTuber Pro</strong> é liberado automaticamente após a confirmação.
           </p>
 
           {erro && (
@@ -1063,12 +1063,12 @@ function PicPayPaymentSection({
             {carregando ? (
               <div className="flex items-center space-x-2.5">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Gerando QR Code no PicPay...</span>
+                <span>Gerando QR Code Pix...</span>
               </div>
             ) : (
               <>
                 <QrCode className="w-5 h-5" />
-                <span>Gerar QR Code Pix no PicPay (R$ {precoFinal.toFixed(2).replace('.', ',')})</span>
+                <span>Gerar QR Code Pix (R$ {precoFinal.toFixed(2).replace('.', ',')})</span>
               </>
             )}
           </button>
@@ -1077,7 +1077,7 @@ function PicPayPaymentSection({
         <div className="space-y-4 text-center animate-in fade-in duration-300">
           {picpayData.qrcodeBase64 && (
             <div className="bg-white p-4 rounded-2xl inline-block shadow-xl border border-neutral-700 mx-auto">
-              <img src={picpayData.qrcodeBase64} alt="QR Code Pix PicPay" className="w-48 h-48 mx-auto" />
+              <img src={picpayData.qrcodeBase64} alt="QR Code Pix" className="w-48 h-48 mx-auto" />
             </div>
           )}
 
@@ -1119,14 +1119,14 @@ function PicPayPaymentSection({
               rel="noopener noreferrer"
               className="w-full py-3.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white font-bold text-xs md:text-sm rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer"
             >
-              <span>Pagar no App do PicPay</span>
+              <span>Abrir App do Pix</span>
               <ExternalLink className="w-4 h-4 text-[#21C25E]" />
             </a>
           )}
 
           <p className="text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-xl flex items-center justify-center space-x-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
-            <span>Aguardando confirmação de pagamento no PicPay...</span>
+            <span>Aguardando confirmação do pagamento Pix...</span>
           </p>
         </div>
       )}
