@@ -30,6 +30,42 @@ interface PicPayPaymentPayload {
   };
 }
 
+/**
+ * Autenticação PicPay OAuth2 (Troca de client_id e client_secret por Access Token Bearer)
+ * Endpoint oficial: POST https://checkout-api.picpay.com/oauth2/token
+ */
+async function getPicPayAccessToken(): Promise<string | null> {
+  try {
+    const authRes = await fetch('https://checkout-api.picpay.com/oauth2/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        grant_type: 'client_credentials',
+        client_id: PICPAY_CLIENT_ID,
+        client_secret: PICPAY_CLIENT_SECRET,
+      }),
+    });
+
+    if (!authRes.ok) {
+      const errText = await authRes.text();
+      console.warn('⚠️ Nota OAuth2 PicPay checkout-api:', authRes.status, errText);
+      return null;
+    }
+
+    const authData = await authRes.json();
+    if (authData.access_token) {
+      console.log('✅ Access Token Bearer PicPay obtido com sucesso!');
+      return authData.access_token;
+    }
+    return null;
+  } catch (err: any) {
+    console.warn('⚠️ Exceção ao obter token OAuth2 PicPay:', err.message);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -38,33 +74,48 @@ serve(async (req) => {
   const url = new URL(req.url);
 
   try {
+    // 1. Obter o Bearer Access Token da API do PicPay
+    const accessToken = await getPicPayAccessToken();
+
+    // 2. Montar headers com autenticação Bearer ou fallback com x-picpay-token
+    const apiHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (accessToken) {
+      apiHeaders['Authorization'] = `Bearer ${accessToken}`;
+    } else {
+      apiHeaders['x-picpay-token'] = PICPAY_SELLER_TOKEN;
+    }
+
     // A) ROTA DE NOTIFICAÇÃO / WEBHOOK DO PICPAY (IPN)
     if (url.pathname.endsWith('/notification') || req.headers.get('x-picpay-token')) {
       const payload = await req.json();
       console.log('🔔 Callback Notificação PicPay Recebida:', payload);
 
       const referenceId = payload.referenceId;
-      const authorizationId = payload.authorizationId;
 
       if (referenceId) {
-        // Consultar Status Oficial do Pagamento na API do PicPay
-        const picPayRes = await fetch(`https://appws.picpay.com/ecommerce/public/payments/${referenceId}/status`, {
+        // Consultar Status Oficial do Pagamento na API do PicPay com Autenticação Bearer
+        let statusRes = await fetch(`https://checkout-api.picpay.com/v1/payments/${referenceId}/status`, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-picpay-token': PICPAY_SELLER_TOKEN,
-          },
+          headers: apiHeaders,
         });
 
-        if (picPayRes.ok) {
-          const statusData = await picPayRes.json();
+        if (!statusRes.ok) {
+          statusRes = await fetch(`https://appws.picpay.com/ecommerce/public/payments/${referenceId}/status`, {
+            method: 'GET',
+            headers: { ...apiHeaders, 'x-picpay-token': PICPAY_SELLER_TOKEN },
+          });
+        }
+
+        if (statusRes.ok) {
+          const statusData = await statusRes.json();
           console.log(`ℹ️ Status do Pagamento PicPay (${referenceId}):`, statusData);
 
           if (statusData.status === 'paid' || statusData.status === 'completed') {
             const customerEmail = statusData.buyer?.email || payload.buyerEmail;
 
             if (customerEmail) {
-              // Atualizar status no Supabase Database
               await supabaseAdmin.from('subscribers').upsert(
                 {
                   email: customerEmail.toLowerCase().trim(),
@@ -85,7 +136,7 @@ serve(async (req) => {
       });
     }
 
-    // B) ROTA DE CRIAÇÃO DE PAGAMENTO PICPAY (PAYMENT INTENT / PIX)
+    // B) ROTA DE CRIAÇÃO DE PAGAMENTO PICPAY
     const body: PicPayPaymentPayload = await req.json();
     const { referenceId, value, buyer, callbackUrl, returnUrl } = body;
 
@@ -106,7 +157,7 @@ serve(async (req) => {
       callbackUrl: callbackUrl || `${supabaseUrl}/functions/v1/picpay-payment/notification`,
       returnUrl: returnUrl || `${siteOrigin}/?checkout=success`,
       value: paymentValue,
-      expiresAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString(), // 24 horas expiração
+      expiresAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
       buyer: {
         firstName: buyer.firstName || 'Cliente',
         lastName: buyer.lastName || 'YouTuber Pro',
@@ -116,16 +167,23 @@ serve(async (req) => {
       },
     };
 
-    console.log('🚀 Solicitando Pagamento PicPay API:', orderRef, buyer.email);
+    console.log('🚀 Solicitando Pagamento PicPay API (Bearer OAuth2):', orderRef, buyer.email);
 
-    const picPayResponse = await fetch('https://appws.picpay.com/ecommerce/public/payments', {
+    // Tenta primeiro o endpoint oficial Checkout API com Bearer token
+    let picPayResponse = await fetch('https://checkout-api.picpay.com/v1/payments', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-picpay-token': PICPAY_SELLER_TOKEN,
-      },
+      headers: apiHeaders,
       body: JSON.stringify(picpayRequestBody),
     });
+
+    if (!picPayResponse.ok) {
+      // Fallback para o endpoint E-commerce público se necessário
+      picPayResponse = await fetch('https://appws.picpay.com/ecommerce/public/payments', {
+        method: 'POST',
+        headers: { ...apiHeaders, 'x-picpay-token': PICPAY_SELLER_TOKEN },
+        body: JSON.stringify(picpayRequestBody),
+      });
+    }
 
     const picPayData = await picPayResponse.json();
 
