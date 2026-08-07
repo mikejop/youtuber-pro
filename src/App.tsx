@@ -303,22 +303,44 @@ export default function App() {
       setIsSidebarExpanded(false);
     }
 
-    // Helper para verificar status de assinante no Supabase
+    // Helper para verificar status de pagamento (1º no Supabase, 2º Fallback na Stripe API + Auto-sync)
     const checkSubscriptionStatus = async (userId: string, email: string) => {
       try {
+        const cleanEmail = email.toLowerCase().trim();
+
+        // PASSO 1: Busca direta no Supabase (Tabela 'subscribers')
         const { data: subData } = await supabase
           .from('subscribers')
           .select('status')
-          .or(`id.eq.${userId},email.eq.${email}`)
+          .or(`id.eq.${userId},email.eq.${cleanEmail}`)
           .maybeSingle();
 
         if (subData?.status === 'active') {
+          console.log('✅ Acesso liberado via Supabase Database:', cleanEmail);
           setIsPaidUser(true);
-        } else {
-          setIsPaidUser(false);
+          return;
         }
+
+        // PASSO 2: Fallback para a API da Stripe via Edge Function
+        console.log('🔍 Não encontrado como ativo no Supabase. Verificando na API da Stripe...', cleanEmail);
+        const res = await fetch('https://txmaffxbrmxlzakxathe.supabase.co/functions/v1/check-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: cleanEmail, userId }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.paid) {
+            console.log('✅ Acesso liberado via Stripe API (sincronizado no Supabase):', cleanEmail);
+            setIsPaidUser(true);
+            return;
+          }
+        }
+
+        setIsPaidUser(false);
       } catch (e) {
-        console.warn('Erro ao verificar assinatura:', e);
+        console.warn('⚠️ Erro ao verificar assinatura:', e);
         setIsPaidUser(false);
       }
     };

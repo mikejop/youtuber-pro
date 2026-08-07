@@ -779,6 +779,19 @@ function EmbeddedPaymentForm({
         setCarregando(false);
       } else {
         console.log('✅ Pagamento confirmado com sucesso via Stripe API!');
+        // 3. Registrar o status ativo no Supabase (Tabela subscribers) para liberação instantânea
+        try {
+          await supabase.from('subscribers').upsert(
+            {
+              email: emailSanitizado,
+              status: 'active',
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'email' }
+          );
+        } catch (subErr) {
+          console.warn('Nota registro subscribers:', subErr);
+        }
         window.location.href = '/?checkout=success';
       }
     } catch (err: any) {
