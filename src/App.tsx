@@ -200,7 +200,7 @@ export default function App() {
   // Timer for Urgency Section
   const [countdown, setCountdown] = useState<string>("14:59");
   const [expandedFAQ, setExpandedFAQ] = useState<Record<number, boolean>>({});
-  const [expandedEmenta, setExpandedEmenta] = useState<Record<string, boolean>>({ intro: true });
+  const [expandedEmenta, setExpandedEmenta] = useState<Record<string, boolean>>({});
   const [activeFlyoutModule, setActiveFlyoutModule] = useState<string | null>(null);
   const [hoveredTrafficLight, setHoveredTrafficLight] = useState<boolean>(false);
   const [activePreviewVideo, setActivePreviewVideo] = useState<boolean>(false);
@@ -804,7 +804,7 @@ export default function App() {
                   {modulesData.map((mod, mIdx) => {
                     const isCurrent = activeLessonId 
                       ? mod.subtopics.some(s => s.id === activeLessonId)
-                      : activeModuleId === mod.id;
+                      : false;
                     const completedLessons = mod.subtopics.filter(s => progress.completedLessons.includes(s.id)).length;
                     const isAllCompleted = completedLessons === mod.subtopics.length;
                     const isLockedModule = mod.id !== 'intro' && !isPaidUser;
