@@ -131,11 +131,12 @@ export const createPicPayPaymentServer = async (
     }
 
     const siteOrigin = window.location.origin;
+    const productionUrl = 'https://youtuber-mqb5aganq-dojo-crew.vercel.app/?checkout=success';
     const picpayBody = {
       referenceId: orderRef,
       callbackUrl: 'https://txmaffxbrmxlzakxathe.supabase.co/functions/v1/picpay-webhook',
       notificationUrl: 'https://txmaffxbrmxlzakxathe.supabase.co/functions/v1/picpay-webhook',
-      returnUrl: `${siteOrigin}/?checkout=success`,
+      returnUrl: siteOrigin.includes('localhost') ? productionUrl : `${siteOrigin}/?checkout=success`,
       value: valor,
       paymentMethods: ['PIX'],
       expiresAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),

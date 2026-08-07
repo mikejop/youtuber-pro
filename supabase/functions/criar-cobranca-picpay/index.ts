@@ -82,14 +82,17 @@ serve(async (req) => {
       }
     }
 
-    // 3. Gerar o Link de Pagamento no PicPay passando a notificationUrl (WEBHOOK)
+    // 3. Gerar o Link de Pagamento no PicPay passando a notificationUrl (WEBHOOK) e returnUrl (Vercel)
     const webhookUrl = `${supabaseUrl}/functions/v1/picpay-webhook`;
+    const appReturnUrl = 'https://youtuber-mqb5aganq-dojo-crew.vercel.app/?checkout=success';
 
     const paymentPayload = {
       referenceId: orderRef,
       value: amountValue,
       paymentMethods: ['PIX'], // Restringe o pagamento apenas para Pix
       notificationUrl: webhookUrl,
+      callbackUrl: webhookUrl,
+      returnUrl: appReturnUrl,
       buyer: buyer ? {
         firstName: buyer.firstName || 'Cliente',
         lastName: buyer.lastName || 'YouTuber Pro',
