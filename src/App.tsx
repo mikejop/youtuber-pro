@@ -809,21 +809,18 @@ export default function App() {
                     const isAllCompleted = completedLessons === mod.subtopics.length;
                     const isLockedModule = mod.id !== 'intro' && !isPaidUser;
 
-                    // Cálculo de Proximidade para Degradê do Cadeado & Efeito macOS Dock Magnification
+                    // Cálculo de Proximidade para Degradê do Cadeado & Efeito macOS Dock Magnification Centralizado
                     let lockOpacity = 0;
                     let dockScale = 1;
-                    let dockTranslateX = 0;
 
                     if (hoveredModuleIndex !== null) {
                       const dist = Math.abs(mIdx - hoveredModuleIndex);
                       if (dist === 0) {
                         lockOpacity = 1;      // Módulo focado: Cadeado 100% visível
-                        dockScale = 1.035;    // Magnificação macOS Dock
-                        dockTranslateX = 2;   // Pequeno deslocamento fluido
+                        dockScale = 1.035;    // Magnificação macOS Dock centralizada
                       } else if (dist === 1) {
                         lockOpacity = 0.5;    // Vizinhos 1: Cadeado 50% visível (degradê)
                         dockScale = 1.018;    // Escala vizinha suave
-                        dockTranslateX = 1;
                       } else if (dist === 2) {
                         lockOpacity = 0.2;    // Vizinhos 2: Cadeado 20% visível (degradê)
                         dockScale = 1.008;
@@ -835,9 +832,9 @@ export default function App() {
                         key={mod.id} 
                         className="space-y-0.5 w-full overflow-hidden"
                         style={{
-                          transform: `scale(${dockScale}) translateX(${dockTranslateX}px)`,
-                          transformOrigin: 'left center',
-                          transition: 'transform 200ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms ease-out',
+                          transform: `scale(${dockScale})`,
+                          transformOrigin: 'center center',
+                          transition: 'transform 220ms cubic-bezier(0.25, 1, 0.5, 1), opacity 300ms ease-out',
                         }}
                         onMouseEnter={() => {
                           setHoveredModuleIndex(mIdx);
@@ -946,8 +943,8 @@ export default function App() {
                                     }}
                                     style={{
                                       transform: `scale(${lessonDockScale})`,
-                                      transformOrigin: 'left center',
-                                      transition: 'transform 200ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms ease-out',
+                                      transformOrigin: 'center center',
+                                      transition: 'transform 220ms cubic-bezier(0.25, 1, 0.5, 1), opacity 300ms ease-out',
                                     }}
                                     className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[10px] text-[11px] transition-all text-left cursor-pointer ${
                                       isCurrentLesson
