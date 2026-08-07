@@ -308,15 +308,22 @@ export default function App() {
       try {
         const cleanEmail = email.toLowerCase().trim();
 
-        // PASSO 1: Busca direta no Supabase (Tabela 'subscribers')
+        // PASSO 1: Busca direta no Supabase (Tabelas 'subscribers' e 'pedidos')
         const { data: subData } = await supabase
           .from('subscribers')
           .select('status')
           .or(`id.eq.${userId},email.eq.${cleanEmail}`)
           .maybeSingle();
 
-        if (subData?.status === 'active') {
-          console.log('✅ Acesso liberado via Supabase Database:', cleanEmail);
+        const { data: pedidoData } = await supabase
+          .from('pedidos')
+          .select('status')
+          .eq('cliente_email', cleanEmail)
+          .eq('status', 'pago_pix')
+          .maybeSingle();
+
+        if (subData?.status === 'active' || pedidoData?.status === 'pago_pix') {
+          console.log('✅ Acesso liberado via Supabase Database (subscribers/pedidos):', cleanEmail);
           setIsPaidUser(true);
           return;
         }

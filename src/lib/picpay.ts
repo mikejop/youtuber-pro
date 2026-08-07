@@ -1,5 +1,5 @@
 /**
- * Helper do Cliente para Interação com a API do PicPay no Servidor (com Fallback Direto Criptografado)
+ * Helper do Cliente para Interação com a API do PicPay e Supabase Edge Functions (criar-cobranca-picpay)
  */
 
 interface CreatePicPayPaymentParams {
@@ -32,10 +32,12 @@ export const createPicPayPaymentServer = async (
     const lastName = names.slice(1).join(' ') || 'YouTuber Pro';
     const cleanEmail = params.email.toLowerCase().trim();
     const orderRef = params.referenceId || `YTP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const valor = params.value || 67.0;
 
     const payload = {
-      value: params.value || 67.0,
       referenceId: orderRef,
+      valor: valor,
+      clienteEmail: cleanEmail,
       buyer: {
         firstName,
         lastName,
@@ -47,9 +49,9 @@ export const createPicPayPaymentServer = async (
 
     const supabaseAnonKey = 'sb_publishable_GgBqVbEZW4yJdLdZWHDmig_nnRQqeKg';
 
-    // 1. Tenta chamar a Edge Function Supabase com os cabeçalhos de autorização
+    // 1. Chamada para a Edge Function oficial 'criar-cobranca-picpay'
     try {
-      const res = await fetch('https://txmaffxbrmxlzakxathe.supabase.co/functions/v1/picpay-payment', {
+      const res = await fetch('https://txmaffxbrmxlzakxathe.supabase.co/functions/v1/criar-cobranca-picpay', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,46 +63,81 @@ export const createPicPayPaymentServer = async (
 
       if (res.ok) {
         const data = await res.json();
-        if (data.success) {
-          return data;
+        if (data.paymentUrl || data.checkoutUrl || data.url || data.success) {
+          return {
+            success: true,
+            referenceId: orderRef,
+            paymentUrl: data.paymentUrl || data.checkoutUrl || data.url,
+            qrcode: data.qrcode,
+            expiresAt: data.expiresAt,
+          };
         }
       }
     } catch (edgeErr) {
-      console.warn('⚠️ Nota Edge Function Supabase PicPay:', edgeErr);
+      console.warn('⚠️ Nota Edge Function criar-cobranca-picpay:', edgeErr);
     }
 
-    // 2. FALLBACK DIRETO: Requisição direta para a API Oficial do PicPay
-    console.log('🔄 Executando integração direta com a API do PicPay (OAuth2)...');
+    // 2. Chamada para a Edge Function alternativa 'picpay-payment'
+    try {
+      const resAlt = await fetch('https://txmaffxbrmxlzakxathe.supabase.co/functions/v1/picpay-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (resAlt.ok) {
+        const dataAlt = await resAlt.json();
+        if (dataAlt.success || dataAlt.paymentUrl) {
+          return {
+            success: true,
+            referenceId: orderRef,
+            paymentUrl: dataAlt.paymentUrl,
+            qrcode: dataAlt.qrcode,
+            expiresAt: dataAlt.expiresAt,
+          };
+        }
+      }
+    } catch (altErr) {
+      console.warn('⚠️ Nota Edge Function picpay-payment:', altErr);
+    }
+
+    // 3. FALLBACK DIRETO: Conexão via OAuth 2.0 (api.picpay.com / checkout-api.picpay.com)
+    console.log('🔄 Executando integração direta OAuth 2.0 PicPay...');
     const clientId = 'b6d9038f-d843-4e03-8e0a-36543370d36c';
     const clientSecret = 'dgGxianwpzz0GSPuiY0oZSygV6T2STwk';
 
-    // 2.1 Autenticação OAuth2 PicPay (Troca de credenciais por Access Token)
     let accessToken = '';
     try {
-      const tokenRes = await fetch('https://checkout-api.picpay.com/oauth2/token', {
+      const tokenRes = await fetch('https://api.picpay.com/oauth/token', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
           grant_type: 'client_credentials',
           client_id: clientId,
           client_secret: clientSecret,
         }),
       });
+
       if (tokenRes.ok) {
         const tokenData = await tokenRes.json();
         accessToken = tokenData.access_token || '';
       }
     } catch (tErr) {
-      console.warn('⚠️ Exceção ao obter token OAuth2 PicPay:', tErr);
+      console.warn('⚠️ Exceção ao obter token OAuth api.picpay.com:', tErr);
     }
 
-    // 2.2 Criação de Pagamento Pix na API Oficial PicPay
     const siteOrigin = window.location.origin;
     const picpayBody = {
       referenceId: orderRef,
-      callbackUrl: `${siteOrigin}/api/picpay-webhook`,
+      callbackUrl: 'https://txmaffxbrmxlzakxathe.supabase.co/functions/v1/picpay-webhook',
+      notificationUrl: 'https://txmaffxbrmxlzakxathe.supabase.co/functions/v1/picpay-webhook',
       returnUrl: `${siteOrigin}/?checkout=success`,
-      value: params.value || 67.0,
+      value: valor,
+      paymentMethods: ['PIX'],
       expiresAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
       buyer: {
         firstName,
@@ -118,16 +155,16 @@ export const createPicPayPaymentServer = async (
       headers['x-picpay-token'] = clientSecret;
     }
 
-    let picPayRes = await fetch('https://checkout-api.picpay.com/v1/payments', {
+    let picPayRes = await fetch('https://api.picpay.com/payment-link', {
       method: 'POST',
       headers,
       body: JSON.stringify(picpayBody),
     });
 
     if (!picPayRes.ok) {
-      picPayRes = await fetch('https://appws.picpay.com/ecommerce/public/payments', {
+      picPayRes = await fetch('https://checkout-api.picpay.com/v1/payments', {
         method: 'POST',
-        headers: { ...headers, 'x-picpay-token': clientSecret },
+        headers,
         body: JSON.stringify(picpayBody),
       });
     }
@@ -137,7 +174,7 @@ export const createPicPayPaymentServer = async (
       return {
         success: true,
         referenceId: orderRef,
-        paymentUrl: picPayData.paymentUrl,
+        paymentUrl: picPayData.paymentUrl || picPayData.checkoutUrl || picPayData.url,
         qrcode: picPayData.qrcode,
         expiresAt: picPayData.expiresAt,
       };
