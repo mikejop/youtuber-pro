@@ -479,7 +479,7 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                   }`}
                 >
                   <QrCode className="w-4 h-4 shrink-0" />
-                  <span className="truncate">Pix (PicPay)</span>
+                  <span className="truncate">Pix</span>
                 </button>
 
                 <button
