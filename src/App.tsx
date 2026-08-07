@@ -790,7 +790,7 @@ export default function App() {
                     {isSidebarExpanded && <span>Visão Geral</span>}
                   </div>
                   {isSidebarExpanded && activeModuleId !== 'intro' && !isPaidUser && (
-                    <Lock size={12} className="text-amber-400 shrink-0" />
+                    <Lock size={12} className="text-neutral-400 shrink-0" />
                   )}
                 </button>
 
@@ -849,7 +849,7 @@ export default function App() {
                           {isSidebarExpanded && (
                             <div className="shrink-0 flex items-center gap-1">
                               {isLockedModule ? (
-                                <Lock size={12} className="text-amber-400 shrink-0" />
+                                <Lock size={12} className="text-neutral-400 shrink-0" />
                               ) : (
                                 <>
                                   {isAllCompleted && <CheckCircle2 size={11} className="text-[#30d158] shrink-0 mr-1" />}
@@ -899,7 +899,7 @@ export default function App() {
                                   >
                                     <span className="truncate">{sIdx + 1}. {sub.title.replace(/^\d+\.\s*/, '')}</span>
                                     {isLockedLesson ? (
-                                      <Lock size={10} className="text-amber-400 shrink-0 ml-1" />
+                                      <Lock size={10} className="text-[#a1a1a6] shrink-0 ml-1" />
                                     ) : (
                                       isCompleted && (
                                         <CheckCircle2 size={10} className={isCurrentLesson ? 'text-white' : 'text-[#30d158]'} />
