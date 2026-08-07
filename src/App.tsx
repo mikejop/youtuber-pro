@@ -204,6 +204,8 @@ export default function App() {
   const [activeFlyoutModule, setActiveFlyoutModule] = useState<string | null>(null);
   const [hoveredTrafficLight, setHoveredTrafficLight] = useState<boolean>(false);
   const [activePreviewVideo, setActivePreviewVideo] = useState<boolean>(false);
+  const [hoveredModuleIndex, setHoveredModuleIndex] = useState<number | null>(null);
+  const [hoveredLessonIndex, setHoveredLessonIndex] = useState<number | null>(null);
 
   // Liquid Glass Procedural Distortion Parameters
   const [glassDistortionScale, setGlassDistortionScale] = useState<number>(25);
@@ -794,12 +796,12 @@ export default function App() {
                   )}
                 </button>
 
-                <div className="space-y-1">
+                <div className="space-y-1" onMouseLeave={() => setHoveredModuleIndex(null)}>
                   {isSidebarExpanded && (
                     <span className="text-[9px] font-bold text-[#86868b] tracking-widest uppercase block px-3 mb-2">MÓDULOS</span>
                   )}
                   
-                  {modulesData.map(mod => {
+                  {modulesData.map((mod, mIdx) => {
                     const isCurrent = activeLessonId 
                       ? mod.subtopics.some(s => s.id === activeLessonId)
                       : activeModuleId === mod.id;
@@ -807,11 +809,40 @@ export default function App() {
                     const isAllCompleted = completedLessons === mod.subtopics.length;
                     const isLockedModule = mod.id !== 'intro' && !isPaidUser;
 
+                    // Cálculo de Proximidade para Degradê do Cadeado & Efeito macOS Dock Magnification
+                    let lockOpacity = 0;
+                    let dockScale = 1;
+                    let dockTranslateX = 0;
+
+                    if (hoveredModuleIndex !== null) {
+                      const dist = Math.abs(mIdx - hoveredModuleIndex);
+                      if (dist === 0) {
+                        lockOpacity = 1;      // Módulo focado: Cadeado 100% visível
+                        dockScale = 1.035;    // Magnificação macOS Dock
+                        dockTranslateX = 2;   // Pequeno deslocamento fluido
+                      } else if (dist === 1) {
+                        lockOpacity = 0.5;    // Vizinhos 1: Cadeado 50% visível (degradê)
+                        dockScale = 1.018;    // Escala vizinha suave
+                        dockTranslateX = 1;
+                      } else if (dist === 2) {
+                        lockOpacity = 0.2;    // Vizinhos 2: Cadeado 20% visível (degradê)
+                        dockScale = 1.008;
+                      }
+                    }
+
                     return (
                       <div 
                         key={mod.id} 
-                        className="space-y-0.5"
-                        onMouseEnter={() => handleModuleMouseEnter(mod.id)}
+                        className="space-y-0.5 w-full overflow-hidden"
+                        style={{
+                          transform: `scale(${dockScale}) translateX(${dockTranslateX}px)`,
+                          transformOrigin: 'left center',
+                          transition: 'transform 200ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms ease-out',
+                        }}
+                        onMouseEnter={() => {
+                          setHoveredModuleIndex(mIdx);
+                          handleModuleMouseEnter(mod.id);
+                        }}
                         onMouseLeave={handleModuleMouseLeave}
                       >
                         
@@ -834,7 +865,7 @@ export default function App() {
                           }}
                           className={`w-full flex items-center ${isSidebarExpanded ? 'justify-between px-3' : 'justify-center px-0'} py-2.5 rounded-[12px] text-[13px] transition-all text-left cursor-pointer ${
                             isCurrent 
-                              ? 'bg-white/15 text-white border border-white/20' 
+                              ? 'bg-white/15 text-white border border-white/20 shadow-sm' 
                               : 'text-neutral-300 hover:text-white hover:bg-white/5'
                           }`}
                           title={!isSidebarExpanded ? getModuleName(mod.title) : undefined}
@@ -849,7 +880,11 @@ export default function App() {
                           {isSidebarExpanded && (
                             <div className="shrink-0 flex items-center gap-1">
                               {isLockedModule ? (
-                                <Lock size={12} className="text-neutral-400 shrink-0" />
+                                <Lock 
+                                  size={12} 
+                                  className="text-neutral-300 shrink-0 transition-opacity duration-300 ease-out" 
+                                  style={{ opacity: lockOpacity }}
+                                />
                               ) : (
                                 <>
                                   {isAllCompleted && <CheckCircle2 size={11} className="text-[#30d158] shrink-0 mr-1" />}
@@ -869,15 +904,33 @@ export default function App() {
                               exit={{ height: 0, opacity: 0 }}
                               transition={{ duration: 0.35, ease: "easeInOut" }}
                               className="pl-2 ml-3 border-l border-white/5 space-y-0.5 py-1 overflow-hidden"
+                              onMouseLeave={() => setHoveredLessonIndex(null)}
                             >
                               {mod.subtopics.map((sub, sIdx) => {
                                 const isCurrentLesson = activeLessonId === sub.id;
                                 const isCompleted = progress.completedLessons.includes(sub.id);
                                 const isLockedLesson = mod.id !== 'intro' && !isPaidUser;
 
+                                let lessonLockOpacity = 0;
+                                let lessonDockScale = 1;
+
+                                if (hoveredLessonIndex !== null) {
+                                  const lDist = Math.abs(sIdx - hoveredLessonIndex);
+                                  if (lDist === 0) {
+                                    lessonLockOpacity = 1;
+                                    lessonDockScale = 1.025;
+                                  } else if (lDist === 1) {
+                                    lessonLockOpacity = 0.5;
+                                    lessonDockScale = 1.01;
+                                  } else if (lDist === 2) {
+                                    lessonLockOpacity = 0.2;
+                                  }
+                                }
+
                                 return (
                                   <button
                                     key={sub.id}
+                                    onMouseEnter={() => setHoveredLessonIndex(sIdx)}
                                     onClick={() => {
                                       if (isLockedLesson) {
                                         setCheckoutModalInfo({
@@ -891,6 +944,11 @@ export default function App() {
                                       setActiveLessonId(sub.id);
                                       setActiveTab('teoria');
                                     }}
+                                    style={{
+                                      transform: `scale(${lessonDockScale})`,
+                                      transformOrigin: 'left center',
+                                      transition: 'transform 200ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms ease-out',
+                                    }}
                                     className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[10px] text-[11px] transition-all text-left cursor-pointer ${
                                       isCurrentLesson
                                         ? 'bg-[#0071e3] text-white font-medium shadow-md shadow-blue-500/10'
@@ -899,7 +957,11 @@ export default function App() {
                                   >
                                     <span className="truncate">{sIdx + 1}. {sub.title.replace(/^\d+\.\s*/, '')}</span>
                                     {isLockedLesson ? (
-                                      <Lock size={10} className="text-[#a1a1a6] shrink-0 ml-1" />
+                                      <Lock 
+                                        size={10} 
+                                        className="text-[#a1a1a6] shrink-0 ml-1 transition-opacity duration-300 ease-out" 
+                                        style={{ opacity: lessonLockOpacity }}
+                                      />
                                     ) : (
                                       isCompleted && (
                                         <CheckCircle2 size={10} className={isCurrentLesson ? 'text-white' : 'text-[#30d158]'} />
