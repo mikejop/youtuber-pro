@@ -848,7 +848,7 @@ export default function App() {
                           onClick={() => {
                             if (isLockedModule) {
                               setCheckoutModalInfo({
-                                title: `Desbloquear Módulo: ${getModuleName(mod.title)}`,
+                                title: 'Desbloquear todo o conteúdo',
                                 description: 'Este módulo técnico é reservado para alunos pagantes do YouTuber Pro. Ative seu acesso instantâneo para liberar!'
                               });
                               setIsCheckoutModalOpen(true);
@@ -931,7 +931,7 @@ export default function App() {
                                     onClick={() => {
                                       if (isLockedLesson) {
                                         setCheckoutModalInfo({
-                                          title: `Aula Trancada: ${sub.title}`,
+                                          title: 'Desbloquear todo o conteúdo',
                                           description: 'Esta aula prática e seus simuladores são reservados para alunos inscritos. Finalize sua inscrição via Stripe para liberar!'
                                         });
                                         setIsCheckoutModalOpen(true);

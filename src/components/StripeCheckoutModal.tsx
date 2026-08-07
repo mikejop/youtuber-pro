@@ -47,12 +47,8 @@ export default function StripeCheckoutModal({
             <Lock className="w-6 h-6" />
           </div>
           <div>
-            <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 bg-[#0071e3]/10 border border-[#0071e3]/30 text-[#0071e3] text-[10px] font-bold rounded-full uppercase tracking-wider mb-1">
-              <Sparkles className="w-3 h-3" />
-              <span>Conteúdo Reservado</span>
-            </div>
             <h2 className="text-lg md:text-xl font-bold text-white leading-tight">
-              {title}
+              Desbloquear todo o conteúdo
             </h2>
           </div>
         </div>
