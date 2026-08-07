@@ -7,8 +7,9 @@ import { rateLimiter, sanitizeText } from '../lib/security';
 import { 
   User, Mail, Lock, Phone, Briefcase, FileText, MapPin, 
   ArrowLeft, CreditCard, ShieldCheck, CheckCircle2, AlertCircle,
-  Tag, Trash2, Sparkles
+  Tag, Trash2, Sparkles, QrCode, Barcode, Copy, ExternalLink, Check
 } from 'lucide-react';
+import { createPicPayPaymentServer } from '../lib/picpay';
 
 const publishableKey = (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_live_51U1LspVfcJ3qJcs9Nl7K2a';
 const stripePromise = loadStripe(publishableKey);
@@ -18,6 +19,9 @@ interface CriarContaCheckoutProps {
 }
 
 export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutProps) {
+  // Forma de Pagamento Selecionada ('card' | 'pix_picpay' | 'boleto')
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'pix_picpay' | 'boleto'>('card');
+
   // Form State
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -443,48 +447,123 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
               </div>
             </div>
 
-            {/* SEÇÃO 4: DADOS DO CARTÃO / PAGAMENTO INTEGRADO STRIPE */}
+            {/* SEÇÃO 4: DADOS E FORMA DE PAGAMENTO */}
             <div className="space-y-4 pt-4 border-t border-neutral-800/80">
               <h3 className="text-sm font-bold uppercase tracking-wider text-neutral-300 flex items-center space-x-2.5">
                 <CreditCard className="w-4 h-4 text-[#0071e3]" />
-                <span>Dados de Pagamento</span>
+                <span>Forma de Pagamento</span>
               </h3>
 
-              {clientSecret ? (
-                <Elements
-                  stripe={stripePromise}
-                  options={{
-                    clientSecret,
-                    appearance: {
-                      theme: 'night',
-                      variables: {
-                        colorPrimary: '#0071e3',
-                        colorBackground: '#0a0a0a',
-                        colorText: '#ffffff',
-                        borderRadius: '16px',
-                        colorDanger: '#ff453a',
-                      },
-                    },
-                  }}
+              {/* Botões de Seleção de Pagamento Lado a Lado (Cartão, Pix via PicPay, Boleto) */}
+              <div className="grid grid-cols-3 gap-2.5 p-1 bg-neutral-950 border border-neutral-800 rounded-2xl">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('card')}
+                  className={`py-3 px-2 rounded-xl text-xs md:text-sm font-semibold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+                    paymentMethod === 'card'
+                      ? 'bg-[#0071e3] text-white shadow-lg shadow-blue-500/20'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+                  }`}
                 >
-                  <EmbeddedPaymentForm
-                    nome={nome}
-                    email={email}
-                    senha={senha}
-                    confirmarSenha={confirmarSenha}
-                    telefone={telefone}
-                    profissao={profissao}
-                    cpfCnpj={cpfCnpj}
-                    addressString={`${logradouro}, ${numero} - ${bairro}, ${cidade}/${estado} - CEP ${cep}`}
-                    appliedCoupon={cupomAplicado?.code || null}
-                    precoFinal={precoFinal}
-                  />
-                </Elements>
-              ) : (
-                <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 text-center space-y-3">
-                  <div className="w-6 h-6 border-2 border-[#0071e3] border-t-transparent rounded-full animate-spin mx-auto" />
-                  <p className="text-xs text-neutral-400">Carregando formulário seguro da Stripe API...</p>
-                </div>
+                  <CreditCard className="w-4 h-4 shrink-0" />
+                  <span className="truncate">Cartão</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('pix_picpay')}
+                  className={`py-3 px-2 rounded-xl text-xs md:text-sm font-semibold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+                    paymentMethod === 'pix_picpay'
+                      ? 'bg-[#21C25E] text-white shadow-lg shadow-green-500/20'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+                  }`}
+                >
+                  <QrCode className="w-4 h-4 shrink-0" />
+                  <span className="truncate">Pix (PicPay)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('boleto')}
+                  className={`py-3 px-2 rounded-xl text-xs md:text-sm font-semibold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+                    paymentMethod === 'boleto'
+                      ? 'bg-neutral-800 text-white shadow-lg'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+                  }`}
+                >
+                  <Barcode className="w-4 h-4 shrink-0" />
+                  <span className="truncate">Boleto</span>
+                </button>
+              </div>
+
+              {/* Renderização Condicional da Opção Selecionada */}
+              {paymentMethod === 'card' && (
+                clientSecret ? (
+                  <Elements
+                    stripe={stripePromise}
+                    options={{
+                      clientSecret,
+                      appearance: {
+                        theme: 'night',
+                        variables: {
+                          colorPrimary: '#0071e3',
+                          colorBackground: '#0a0a0a',
+                          colorText: '#ffffff',
+                          borderRadius: '16px',
+                          colorDanger: '#ff453a',
+                        },
+                      },
+                    }}
+                  >
+                    <EmbeddedPaymentForm
+                      nome={nome}
+                      email={email}
+                      senha={senha}
+                      confirmarSenha={confirmarSenha}
+                      telefone={telefone}
+                      profissao={profissao}
+                      cpfCnpj={cpfCnpj}
+                      addressString={`${logradouro}, ${numero} - ${bairro}, ${cidade}/${estado} - CEP ${cep}`}
+                      appliedCoupon={cupomAplicado?.code || null}
+                      precoFinal={precoFinal}
+                    />
+                  </Elements>
+                ) : (
+                  <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 text-center space-y-3">
+                    <div className="w-6 h-6 border-2 border-[#0071e3] border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-xs text-neutral-400">Carregando formulário seguro de cartão...</p>
+                  </div>
+                )
+              )}
+
+              {paymentMethod === 'pix_picpay' && (
+                <PicPayPaymentSection
+                  nome={nome}
+                  email={email}
+                  senha={senha}
+                  confirmarSenha={confirmarSenha}
+                  telefone={telefone}
+                  profissao={profissao}
+                  cpfCnpj={cpfCnpj}
+                  addressString={`${logradouro}, ${numero} - ${bairro}, ${cidade}/${estado} - CEP ${cep}`}
+                  appliedCoupon={cupomAplicado?.code || null}
+                  precoFinal={precoFinal}
+                />
+              )}
+
+              {paymentMethod === 'boleto' && (
+                <BoletoPaymentSection
+                  nome={nome}
+                  email={email}
+                  senha={senha}
+                  confirmarSenha={confirmarSenha}
+                  telefone={telefone}
+                  profissao={profissao}
+                  cpfCnpj={cpfCnpj}
+                  addressString={`${logradouro}, ${numero} - ${bairro}, ${cidade}/${estado} - CEP ${cep}`}
+                  appliedCoupon={cupomAplicado?.code || null}
+                  precoFinal={precoFinal}
+                />
               )}
             </div>
 
@@ -832,5 +911,357 @@ function EmbeddedPaymentForm({
         )}
       </button>
     </form>
+  );
+}
+
+/**
+ * Componente dedicado para Pagamento via Pix no PicPay
+ */
+function PicPayPaymentSection({
+  nome,
+  email,
+  senha,
+  confirmarSenha,
+  telefone,
+  profissao,
+  cpfCnpj,
+  addressString,
+  appliedCoupon,
+  precoFinal,
+}: {
+  nome: string;
+  email: string;
+  senha: string;
+  confirmarSenha: string;
+  telefone: string;
+  profissao: string;
+  cpfCnpj: string;
+  addressString: string;
+  appliedCoupon: string | null;
+  precoFinal: number;
+}) {
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [copiado, setCopiado] = useState(false);
+  const [picpayData, setPicpayData] = useState<{
+    paymentUrl?: string;
+    qrcodeContent?: string;
+    qrcodeBase64?: string;
+    referenceId?: string;
+  } | null>(null);
+
+  const handleGerarPixPicPay = async () => {
+    setErro(null);
+
+    if (senha !== confirmarSenha) {
+      setErro('As senhas digitadas não coincidem.');
+      return;
+    }
+    if (senha.length < 6) {
+      setErro('A senha deve conter no mínimo 6 caracteres.');
+      return;
+    }
+    const emailClean = email.toLowerCase().trim();
+    const nomeClean = nome.trim();
+    const cpfClean = cpfCnpj.trim();
+
+    if (!emailClean || !nomeClean || !cpfClean) {
+      setErro('Preencha os campos obrigatórios do cadastro acima (Nome, E-mail e CPF/CNPJ).');
+      return;
+    }
+
+    setCarregando(true);
+
+    try {
+      // 1. Cadastra usuário no Supabase Auth
+      await supabase.auth.signUp({
+        email: emailClean,
+        password: senha,
+        options: {
+          data: {
+            full_name: nomeClean,
+            phone: telefone,
+            profession: profissao,
+            cpf_cnpj: cpfClean,
+            address: addressString,
+            applied_coupon: appliedCoupon,
+          },
+        },
+      });
+
+      // 2. Chama a API do PicPay no Servidor
+      const response = await createPicPayPaymentServer({
+        email: emailClean,
+        name: nomeClean,
+        cpfCnpj: cpfClean,
+        phone: telefone,
+        value: precoFinal,
+      });
+
+      if (response.success) {
+        setPicpayData({
+          paymentUrl: response.paymentUrl,
+          qrcodeContent: response.qrcode?.content,
+          qrcodeBase64: response.qrcode?.base64,
+          referenceId: response.referenceId,
+        });
+      } else {
+        setErro(response.error || 'Não foi possível gerar o pagamento no PicPay.');
+      }
+    } catch (err: any) {
+      console.error('Erro ao gerar Pix no PicPay:', err);
+      setErro('Ocorreu uma falha ao gerar o Pix via PicPay. Tente novamente.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  const handleCopiarChavePix = () => {
+    if (picpayData?.qrcodeContent) {
+      navigator.clipboard.writeText(picpayData.qrcodeContent);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2500);
+    }
+  };
+
+  return (
+    <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-5 space-y-5">
+      <div className="flex items-center justify-between border-b border-neutral-800/80 pb-3">
+        <div className="flex items-center space-x-2.5">
+          <div className="w-8 h-8 rounded-xl bg-[#21C25E]/15 border border-[#21C25E]/30 text-[#21C25E] flex items-center justify-center font-bold text-xs">
+            Pix
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-white leading-tight">Pix via PicPay</h4>
+            <p className="text-[11px] text-neutral-400">Aprovação instantânea de acesso</p>
+          </div>
+        </div>
+        <span className="px-2.5 py-1 bg-[#21C25E]/10 text-[#21C25E] border border-[#21C25E]/20 rounded-full text-[10px] font-bold uppercase tracking-wider">
+          Recomendado
+        </span>
+      </div>
+
+      {!picpayData ? (
+        <div className="space-y-4">
+          <p className="text-xs text-neutral-300 leading-relaxed">
+            Ao clicar abaixo, será gerado o QR Code e a chave Copia e Cola do Pix processados pelo **PicPay**. Seu acesso ao **YouTuber Pro** é liberado automaticamente após a confirmação.
+          </p>
+
+          {erro && (
+            <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs flex items-start space-x-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{erro}</span>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleGerarPixPicPay}
+            disabled={carregando}
+            className="w-full py-4 bg-[#21C25E] hover:bg-[#1eb356] text-white font-bold text-sm md:text-base rounded-2xl transition-all shadow-lg shadow-green-500/20 cursor-pointer flex items-center justify-center space-x-2.5 disabled:opacity-50"
+          >
+            {carregando ? (
+              <div className="flex items-center space-x-2.5">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Gerando QR Code no PicPay...</span>
+              </div>
+            ) : (
+              <>
+                <QrCode className="w-5 h-5" />
+                <span>Gerar QR Code Pix no PicPay (R$ {precoFinal.toFixed(2).replace('.', ',')})</span>
+              </>
+            )}
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-4 text-center animate-in fade-in duration-300">
+          {picpayData.qrcodeBase64 && (
+            <div className="bg-white p-4 rounded-2xl inline-block shadow-xl border border-neutral-700 mx-auto">
+              <img src={picpayData.qrcodeBase64} alt="QR Code Pix PicPay" className="w-48 h-48 mx-auto" />
+            </div>
+          )}
+
+          {picpayData.qrcodeContent && (
+            <div className="space-y-2 text-left">
+              <label className="text-xs font-semibold text-neutral-300">Chave Copia e Cola Pix:</label>
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={picpayData.qrcodeContent}
+                  className="flex-1 bg-neutral-900 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-300 truncate"
+                />
+                <button
+                  type="button"
+                  onClick={handleCopiarChavePix}
+                  className="px-3.5 py-2 bg-[#21C25E] hover:bg-[#1eb356] text-white text-xs font-bold rounded-xl transition-all flex items-center space-x-1.5 shrink-0 cursor-pointer"
+                >
+                  {copiado ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>Copiado!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>Copiar</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {picpayData.paymentUrl && (
+            <a
+              href={picpayData.paymentUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white font-bold text-xs md:text-sm rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer"
+            >
+              <span>Pagar no App do PicPay</span>
+              <ExternalLink className="w-4 h-4 text-[#21C25E]" />
+            </a>
+          )}
+
+          <p className="text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-xl flex items-center justify-center space-x-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>Aguardando confirmação de pagamento no PicPay...</span>
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Componente dedicado para Pagamento via Boleto Bancário
+ */
+function BoletoPaymentSection({
+  nome,
+  email,
+  senha,
+  confirmarSenha,
+  telefone,
+  profissao,
+  cpfCnpj,
+  addressString,
+  appliedCoupon,
+  precoFinal,
+}: {
+  nome: string;
+  email: string;
+  senha: string;
+  confirmarSenha: string;
+  telefone: string;
+  profissao: string;
+  cpfCnpj: string;
+  addressString: string;
+  appliedCoupon: string | null;
+  precoFinal: number;
+}) {
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [boletoGerado, setBoletoGerado] = useState(false);
+
+  const handleGerarBoleto = async () => {
+    setErro(null);
+
+    if (senha !== confirmarSenha) {
+      setErro('As senhas digitadas não coincidem.');
+      return;
+    }
+    if (senha.length < 6) {
+      setErro('A senha deve conter no mínimo 6 caracteres.');
+      return;
+    }
+    const emailClean = email.toLowerCase().trim();
+    const nomeClean = nome.trim();
+    const cpfClean = cpfCnpj.trim();
+
+    if (!emailClean || !nomeClean || !cpfClean) {
+      setErro('Preencha os campos obrigatórios do cadastro acima (Nome, E-mail e CPF/CNPJ).');
+      return;
+    }
+
+    setCarregando(true);
+    try {
+      await supabase.auth.signUp({
+        email: emailClean,
+        password: senha,
+        options: {
+          data: {
+            full_name: nomeClean,
+            phone: telefone,
+            profession: profissao,
+            cpf_cnpj: cpfClean,
+            address: addressString,
+            applied_coupon: appliedCoupon,
+          },
+        },
+      });
+
+      setBoletoGerado(true);
+    } catch (err: any) {
+      setErro('Não foi possível gerar o boleto bancário no momento.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  return (
+    <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-5 space-y-4">
+      <div className="flex items-center space-x-2.5 border-b border-neutral-800/80 pb-3">
+        <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center font-bold text-xs">
+          <Barcode className="w-4 h-4" />
+        </div>
+        <div>
+          <h4 className="text-sm font-bold text-white leading-tight">Boleto Bancário</h4>
+          <p className="text-[11px] text-neutral-400">Vencimento em 3 dias úteis</p>
+        </div>
+      </div>
+
+      {!boletoGerado ? (
+        <div className="space-y-4">
+          <p className="text-xs text-neutral-300 leading-relaxed">
+            O boleto será gerado com o valor de **R$ {precoFinal.toFixed(2).replace('.', ',')}**. A liberação do curso ocorre após a compensação bancária (1 a 3 dias úteis).
+          </p>
+
+          {erro && (
+            <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs flex items-start space-x-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{erro}</span>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleGerarBoleto}
+            disabled={carregando}
+            className="w-full py-4 bg-neutral-800 hover:bg-neutral-700 text-white font-bold text-sm md:text-base rounded-2xl transition-all shadow-lg cursor-pointer flex items-center justify-center space-x-2.5 disabled:opacity-50"
+          >
+            {carregando ? (
+              <div className="flex items-center space-x-2.5">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Gerando Boleto...</span>
+              </div>
+            ) : (
+              <>
+                <Barcode className="w-5 h-5" />
+                <span>Gerar Boleto Bancário (R$ {precoFinal.toFixed(2).replace('.', ',')})</span>
+              </>
+            )}
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3 text-center p-4 bg-neutral-900 border border-neutral-800 rounded-2xl">
+          <CheckCircle2 className="w-8 h-8 text-amber-400 mx-auto" />
+          <h5 className="text-sm font-bold text-white">Boleto Gerado com Sucesso!</h5>
+          <p className="text-xs text-neutral-400">
+            Enviamos a linha digitável e o PDF do boleto para o e-mail registrado (**{email}**).
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
