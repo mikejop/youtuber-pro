@@ -2,8 +2,8 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8';
 
 // Configurações e Credenciais de Servidor PicPay (Protegidas)
-const PICPAY_CLIENT_ID = Deno.env.get('PICPAY_CLIENT_ID') || '33f183d9-a3df-4fe3-bcbd-bc0165e38d93';
-const PICPAY_CLIENT_SECRET = Deno.env.get('PICPAY_CLIENT_SECRET') || 'a5wNQcLgscVlvMdqiKxHWJdztFKP2MNY';
+const PICPAY_CLIENT_ID = Deno.env.get('PICPAY_CLIENT_ID') || 'b6d9038f-d843-4e03-8e0a-36543370d36c';
+const PICPAY_CLIENT_SECRET = Deno.env.get('PICPAY_CLIENT_SECRET') || 'dgGxianwpzz0GSPuiY0oZSygV6T2STwk';
 const PICPAY_SELLER_TOKEN = Deno.env.get('PICPAY_SELLER_TOKEN') || PICPAY_CLIENT_SECRET;
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
