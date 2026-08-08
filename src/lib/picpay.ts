@@ -2,6 +2,8 @@
  * Helper do Cliente para Interação com a API do PicPay e Supabase Edge Functions
  */
 
+import { supabase } from './supabase';
+
 interface CreatePicPayPaymentParams {
   email: string;
   name: string;
@@ -92,22 +94,13 @@ export const createPicPayPaymentServer = async (
     },
   };
 
-  const supabaseAnonKey = 'sb_publishable_GgBqVbEZW4yJdLdZWHDmig_nnRQqeKg';
-
-  // 1. Tenta acionar a Edge Function do Supabase 'criar-cobranca-picpay'
+  // 1. Invoca a Edge Function oficial do Supabase usando o cliente autenticado (evita erro 403 policy)
   try {
-    const res = await fetch('https://txmaffxbrmxlzakxathe.supabase.co/functions/v1/criar-cobranca-picpay', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': supabaseAnonKey,
-        'Authorization': `Bearer ${supabaseAnonKey}`,
-      },
-      body: JSON.stringify(payload),
+    const { data, error } = await supabase.functions.invoke('criar-cobranca-picpay', {
+      body: payload,
     });
 
-    if (res.ok) {
-      const data = await res.json();
+    if (!error && data) {
       if (data.paymentUrl || data.checkoutUrl || data.url || data.qrcode?.content || data.success) {
         return {
           success: true,
@@ -120,12 +113,14 @@ export const createPicPayPaymentServer = async (
           expiresAt: data.expiresAt,
         };
       }
+    } else if (error) {
+      console.warn('⚠️ Nota Edge Function criar-cobranca-picpay:', error);
     }
   } catch (edgeErr) {
-    console.warn('⚠️ Nota Edge Function criar-cobranca-picpay:', edgeErr);
+    console.warn('⚠️ Exceção ao chamar Edge Function:', edgeErr);
   }
 
-  // 2. GERADOR BR CODE PIX INSTANTÂNEO (EVITA ERRO LOAD FAILED DO BROWSER E EXECUTA 100% DAS VEZES)
+  // 2. GERADOR BR CODE PIX INSTANTÂNEO (EVITA ERRO LOAD FAILED DO BROWSER E GARANTE FUNCIONAMENTO 100%)
   console.log('⚡ Gerando QR Code e Chave Pix Copia e Cola via BR Code Standard...');
   const picpayChavePix = 'b6d9038f-d843-4e03-8e0a-36543370d36c';
   const pixPayloadString = generatePixBRCode(picpayChavePix, valor, orderRef);
