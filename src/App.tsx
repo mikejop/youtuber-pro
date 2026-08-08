@@ -1337,7 +1337,7 @@ export default function App() {
                         }}
                         className="w-full md:w-auto px-8 py-4 bg-[#0071e3] text-white rounded-full font-bold text-sm hover:scale-105 active:scale-95 shadow-lg shadow-blue-500/20 transition-all cursor-pointer text-center"
                       >
-                        Começar Guia de Sobrevivência
+                        Começar agora!
                       </button>
                     </div>
                   </div>
