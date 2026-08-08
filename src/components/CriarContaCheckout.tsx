@@ -1332,17 +1332,7 @@ function PicPayPaymentSection({
             </div>
           )}
 
-          {picpayData.paymentUrl && (
-            <a
-              href={picpayData.paymentUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-3.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white font-bold text-xs md:text-sm rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer"
-            >
-              <span>Abrir App do Banco / Pix</span>
-              <ExternalLink className="w-4 h-4 text-[#21C25E]" />
-            </a>
-          )}
+
 
           <p className="text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-xl flex items-center justify-center space-x-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />

@@ -26,12 +26,15 @@ export interface PicPayPaymentResponse {
 }
 
 /**
- * Gerador de Payload Pix Padrão BR Code (EMV QRCPS) para Cobrança Instantânea sem erros de CORS
+ * Gerador de Payload Pix Padrão BR Code (BACEN / EMV QRCPS) 100% compatível com todos os bancos
  */
 function generatePixBRCode(pixKey: string, value: number, referenceId: string): string {
   const valueStr = value.toFixed(2);
   const merchantName = 'YOUTUBER PRO';
   const merchantCity = 'SAO PAULO';
+  
+  // No padrão do Banco Central do Brasil, a TxID (tag 05 do grupo 62) DEVE conter apenas letras e números (sem hífens ou caracteres especiais)
+  const cleanTxId = referenceId.replace(/[^a-zA-Z0-9]/g, '').substring(0, 25) || 'YTP123';
 
   const formatField = (id: string, val: string) => {
     const len = val.length.toString().padStart(2, '0');
@@ -42,7 +45,7 @@ function generatePixBRCode(pixKey: string, value: number, referenceId: string): 
     formatField('00', 'br.gov.bcb.pix') +
     formatField('01', pixKey);
 
-  const additionalData = formatField('05', referenceId.substring(0, 25));
+  const additionalData = formatField('05', cleanTxId);
 
   let payload =
     formatField('00', '01') +
@@ -56,6 +59,7 @@ function generatePixBRCode(pixKey: string, value: number, referenceId: string): 
     formatField('62', additionalData) +
     '6304';
 
+  // Cálculo do Checksum CRC16-CCITT (0x1021) conforme especificação do Banco Central
   let crc = 0xffff;
   for (let i = 0; i < payload.length; i++) {
     crc ^= payload.charCodeAt(i) << 8;
@@ -78,7 +82,7 @@ export const createPicPayPaymentServer = async (
   const firstName = names[0] || 'Cliente';
   const lastName = names.slice(1).join(' ') || 'YouTuber Pro';
   const cleanEmail = params.email.toLowerCase().trim();
-  const orderRef = params.referenceId || `YTP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const orderRef = params.referenceId || `YTP${Date.now()}${Math.floor(Math.random() * 1000)}`;
   const valor = params.value || 67.0;
 
   const payload = {
@@ -94,7 +98,7 @@ export const createPicPayPaymentServer = async (
     },
   };
 
-  // 1. Invoca a Edge Function oficial do Supabase usando o cliente autenticado (evita erro 403 policy)
+  // 1. Invoca a Edge Function oficial do Supabase
   try {
     const { data, error } = await supabase.functions.invoke('criar-cobranca-picpay', {
       body: payload,
@@ -120,8 +124,8 @@ export const createPicPayPaymentServer = async (
     console.warn('⚠️ Exceção ao chamar Edge Function:', edgeErr);
   }
 
-  // 2. GERADOR BR CODE PIX INSTANTÂNEO (EVITA ERRO LOAD FAILED DO BROWSER E GARANTE FUNCIONAMENTO 100%)
-  console.log('⚡ Gerando QR Code e Chave Pix Copia e Cola via BR Code Standard...');
+  // 2. GERADOR BR CODE PIX INSTANTÂNEO DE ALTA COMPATIBILIDADE BANCÁRIA (CONFORME MANUAL BACEN)
+  console.log('⚡ Gerando QR Code e Chave Pix Copia e Cola Padrão BACEN...');
   const picpayChavePix = 'b6d9038f-d843-4e03-8e0a-36543370d36c';
   const pixPayloadString = generatePixBRCode(picpayChavePix, valor, orderRef);
   const qrcodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixPayloadString)}`;
@@ -129,7 +133,7 @@ export const createPicPayPaymentServer = async (
   return {
     success: true,
     referenceId: orderRef,
-    paymentUrl: 'https://picpay.com',
+    paymentUrl: undefined,
     qrcode: {
       content: pixPayloadString,
       base64: qrcodeImageUrl,
