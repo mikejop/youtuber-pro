@@ -99,9 +99,46 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
     }
   };
 
+  // Preenchimento automático e bloqueio de e-mail para Login Social (Google / LinkedIn)
+  const [isSocialLogin, setIsSocialLogin] = useState(false);
+
   useEffect(() => {
     fetchPaymentIntent();
+
+    // Verifica se o usuário autenticou via Login Social (Google / LinkedIn)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const user = session.user;
+        const meta = user.user_metadata || {};
+        const isSocial = user.app_metadata?.provider !== 'email' && user.app_metadata?.provider !== undefined;
+
+        if (user.email) {
+          setEmail(user.email);
+        }
+        const socialName = meta.full_name || meta.name || meta.preferred_username || '';
+        if (socialName) {
+          setNome(socialName);
+        }
+
+        if (isSocial || (user.app_metadata?.provider && user.app_metadata.provider !== 'email')) {
+          setIsSocialLogin(true);
+        }
+      }
+    });
   }, []);
+
+  const handleVoltarSemPagamento = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('Nota signOut voltar:', e);
+    }
+    if (onBackToMain) {
+      onBackToMain();
+    } else {
+      window.location.href = '/';
+    }
+  };
 
   // Validar Cupom via Stripe API
   const handleValidarCupom = async () => {
@@ -208,7 +245,7 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
           
           <button
             type="button"
-            onClick={() => (onBackToMain ? onBackToMain() : (window.location.href = '/'))}
+            onClick={handleVoltarSemPagamento}
             className="inline-flex items-center space-x-2 text-sm text-neutral-400 hover:text-white transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -253,15 +290,29 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
 
                 {/* E-mail */}
                 <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-xs md:text-sm font-semibold text-neutral-200">E-mail Cadastrado *</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs md:text-sm font-semibold text-neutral-200">E-mail Cadastrado *</label>
+                    {isSocialLogin && (
+                      <span className="text-[11px] text-[#0071e3] font-semibold flex items-center space-x-1.5 bg-[#0071e3]/10 border border-[#0071e3]/20 px-3 py-1 rounded-full">
+                        <Lock className="w-3 h-3 shrink-0" />
+                        <span>Vínculo Social (Não editável)</span>
+                      </span>
+                    )}
+                  </div>
                   <div className="relative">
                     <input
                       type="email"
                       placeholder="seuemail@exemplo.com"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      readOnly={isSocialLogin}
+                      disabled={isSocialLogin}
+                      onChange={(e) => !isSocialLogin && setEmail(e.target.value)}
                       required
-                      className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 rounded-2xl px-4 py-3.5 text-sm md:text-base text-white focus:outline-none placeholder:text-neutral-600 transition-all"
+                      className={`w-full bg-neutral-950 border rounded-2xl px-4 py-3.5 text-sm md:text-base text-white focus:outline-none placeholder:text-neutral-600 transition-all ${
+                        isSocialLogin
+                          ? 'border-neutral-800 bg-neutral-900/60 text-neutral-300 cursor-not-allowed opacity-90'
+                          : 'border-neutral-800 focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20'
+                      }`}
                     />
                     <Mail className="w-5 h-5 text-neutral-500 absolute right-4 top-4 pointer-events-none" />
                   </div>
