@@ -570,20 +570,21 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
               {/* Renderização Condicional da Opção Selecionada */}
               {paymentMethod === 'card' && (
                 <div className="space-y-4">
-                  {/* Switch para Escolher Crédito ou Débito */}
-                  <div className="bg-neutral-950 border border-neutral-800 p-3.5 rounded-2xl space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <CreditCard className="w-4 h-4 text-[#0071e3]" />
-                        <span className="text-xs font-bold text-white">Modalidade do Cartão:</span>
-                      </div>
-                      <div className="flex bg-neutral-900 border border-neutral-800 rounded-xl p-1 space-x-1">
+                  {/* Switch Discreto de Modalidade de Cartão */}
+                  <div className="flex items-center justify-between px-1 py-0.5">
+                    <div className="flex items-center space-x-2 text-xs font-bold text-white">
+                      <CreditCard className="w-4 h-4 text-[#0071e3]" />
+                      <span>Dados do Cartão</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-[11px] text-neutral-400 font-medium">Função:</span>
+                      <div className="inline-flex bg-neutral-950 border border-neutral-800 rounded-xl p-0.5 space-x-1">
                         <button
                           type="button"
                           onClick={() => setCardType('credito')}
-                          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                             cardType === 'credito'
-                              ? 'bg-[#0071e3] text-white shadow-md shadow-blue-500/20'
+                              ? 'bg-[#0071e3] text-white shadow-sm'
                               : 'text-neutral-400 hover:text-white'
                           }`}
                         >
@@ -592,9 +593,9 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                         <button
                           type="button"
                           onClick={() => setCardType('debito')}
-                          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                             cardType === 'debito'
-                              ? 'bg-[#0071e3] text-white shadow-md shadow-blue-500/20'
+                              ? 'bg-[#0071e3] text-white shadow-sm'
                               : 'text-neutral-400 hover:text-white'
                           }`}
                         >
@@ -602,11 +603,6 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                         </button>
                       </div>
                     </div>
-                    <p className="text-[11px] text-neutral-400 leading-relaxed">
-                      {cardType === 'credito'
-                        ? 'Cobrança na função Crédito com liberação instantânea.'
-                        : 'Cobrança na função Débito à vista com verificação e autenticação 3D Secure via Stripe.'}
-                    </p>
                   </div>
 
                   {clientSecret ? (
@@ -616,10 +612,13 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                         clientSecret,
                         appearance: {
                           theme: 'night',
+                          labels: 'above',
                           variables: {
                             colorPrimary: '#0071e3',
-                            colorBackground: '#0a0a0a',
+                            colorBackground: '#0a0a0c',
                             colorText: '#ffffff',
+                            colorTextSecondary: '#a1a1aa',
+                            colorTextPlaceholder: '#52525b',
                             borderRadius: '16px',
                             colorDanger: '#ff453a',
                           },
@@ -1067,7 +1066,17 @@ function EmbeddedPaymentForm({
   return (
     <form onSubmit={handlePayAndRegister} className="space-y-6">
       <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-4 md:p-5 space-y-4">
-        <PaymentElement id="payment-element" options={{ layout: 'tabs' }} />
+        <PaymentElement
+          id="payment-element"
+          options={{
+            layout: {
+              type: 'accordion',
+              defaultCollapsed: false,
+              radios: false,
+              spacedAccordionItems: false,
+            },
+          }}
+        />
       </div>
 
       {erro && (
