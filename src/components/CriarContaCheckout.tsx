@@ -10,6 +10,7 @@ import {
   Tag, Trash2, QrCode, Barcode, Copy, ExternalLink, Check
 } from 'lucide-react';
 import { createPicPayPaymentServer } from '../lib/picpay';
+import Skeleton, { SkeletonPaymentForm } from './Skeleton';
 
 const publishableKey = (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_live_51U1LspVfcJ3qJcs9Nl7K2a';
 const stripePromise = loadStripe(publishableKey);
@@ -698,10 +699,13 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                       />
                     </Elements>
                   ) : (
-                    <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 text-center space-y-3">
-                      <div className="w-6 h-6 border-2 border-[#0071e3] border-t-transparent rounded-full animate-spin mx-auto" />
-                      <p className="text-xs text-neutral-400">Carregando formulário seguro de cartão...</p>
-                    </div>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                      <SkeletonPaymentForm />
+                    </motion.div>
                   )}
                 </div>
               )}
@@ -1286,7 +1290,7 @@ function PicPayPaymentSection({
           {/* Exibição do QR Code Imagem */}
           {picpayData.qrcodeBase64 ? (
             <div className="bg-white p-4 rounded-2xl inline-block shadow-xl border border-neutral-700 mx-auto">
-              <img src={picpayData.qrcodeBase64} alt="QR Code Pix" className="w-52 h-52 mx-auto" />
+              <img src={picpayData.qrcodeBase64} alt="QR Code Pix" loading="lazy" decoding="async" className="w-52 h-52 mx-auto" />
             </div>
           ) : (
             <div className="bg-neutral-900 p-6 rounded-2xl border border-neutral-800 space-y-2">

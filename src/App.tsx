@@ -1192,6 +1192,8 @@ export default function App() {
                       <img 
                         src={userProfile.avatar} 
                         alt="Perfil" 
+                        loading="lazy"
+                        decoding="async"
                         className="w-8 h-8 rounded-full border border-white/20 group-hover:border-[#0071e3] transition-colors object-cover shrink-0"
                       />
                       <ChevronDown size={12} className={`text-neutral-400 group-hover:text-white transition-transform duration-200 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
@@ -1220,6 +1222,8 @@ export default function App() {
                               <img 
                                 src={userProfile.avatar} 
                                 alt="Perfil" 
+                                loading="lazy"
+                                decoding="async"
                                 className="w-9 h-9 rounded-full border border-white/20 object-cover shrink-0"
                               />
                               <div className="overflow-hidden">

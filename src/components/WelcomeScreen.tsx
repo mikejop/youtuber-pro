@@ -48,7 +48,7 @@ export default function WelcomeScreen({ userName, userEmail, userAvatar, onConti
               className="w-20 h-20 rounded-2xl overflow-hidden bg-gradient-to-tr from-[#0071e3] to-[#00c7fc] text-white flex items-center justify-center shadow-lg shadow-blue-500/25 border-2 border-white/20"
             >
               {userAvatar ? (
-                <img src={userAvatar} alt={displayName} className="w-full h-full object-cover" />
+                <img src={userAvatar} alt={displayName} loading="lazy" decoding="async" className="w-full h-full object-cover" />
               ) : (
                 <User className="w-9 h-9" />
               )}
