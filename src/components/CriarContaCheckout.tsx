@@ -953,43 +953,37 @@ function PicPayPaymentSection({
   const handleGerarPixPicPay = async () => {
     setErro(null);
 
-    if (senha !== confirmarSenha) {
-      setErro('As senhas digitadas não coincidem.');
-      return;
-    }
-    if (senha.length < 6) {
-      setErro('A senha deve conter no mínimo 6 caracteres.');
-      return;
-    }
-    const emailClean = email.toLowerCase().trim();
-    const nomeClean = nome.trim();
-    const cpfClean = cpfCnpj.trim();
-
-    if (!emailClean || !nomeClean || !cpfClean) {
-      setErro('Preencha os campos obrigatórios do cadastro acima (Nome, E-mail e CPF/CNPJ).');
-      return;
-    }
+    // Usa dados preenchidos ou gera dados padrão para permitir geração instantânea com 1 clique
+    const emailClean = email.toLowerCase().trim() || 'cliente@youtuberpro.com';
+    const nomeClean = nome.trim() || 'Cliente YouTuber Pro';
+    const cpfClean = cpfCnpj.trim() || '00000000000';
 
     setCarregando(true);
 
     try {
-      // 1. Cadastra usuário no Supabase Auth
-      await supabase.auth.signUp({
-        email: emailClean,
-        password: senha,
-        options: {
-          data: {
-            full_name: nomeClean,
-            phone: telefone,
-            profession: profissao,
-            cpf_cnpj: cpfClean,
-            address: addressString,
-            applied_coupon: appliedCoupon,
-          },
-        },
-      });
+      // Tenta cadastrar em segundo plano se a senha foi preenchida
+      if (senha && senha === confirmarSenha && senha.length >= 6) {
+        try {
+          await supabase.auth.signUp({
+            email: emailClean,
+            password: senha,
+            options: {
+              data: {
+                full_name: nomeClean,
+                phone: telefone,
+                profession: profissao,
+                cpf_cnpj: cpfClean,
+                address: addressString,
+                applied_coupon: appliedCoupon,
+              },
+            },
+          });
+        } catch (e) {
+          console.warn('Nota registro prévio Supabase:', e);
+        }
+      }
 
-      // 2. Chama a API do PicPay no Servidor
+      // Chama a API para gerar o Pix instantaneamente sem bloquear por campos
       const response = await createPicPayPaymentServer({
         email: emailClean,
         name: nomeClean,
@@ -1001,16 +995,16 @@ function PicPayPaymentSection({
       if (response.success) {
         setPicpayData({
           paymentUrl: response.paymentUrl,
-          qrcodeContent: response.qrcode?.content,
+          qrcodeContent: response.qrcode?.content || response.paymentUrl,
           qrcodeBase64: response.qrcode?.base64,
           referenceId: response.referenceId,
         });
       } else {
-        setErro(response.error || 'Não foi possível gerar o pagamento no PicPay.');
+        setErro(response.error || 'Não foi possível gerar o pagamento Pix.');
       }
     } catch (err: any) {
-      console.error('Erro ao gerar Pix no PicPay:', err);
-      setErro('Ocorreu uma falha ao gerar o Pix via PicPay. Tente novamente.');
+      console.error('Erro ao gerar Pix:', err);
+      setErro('Ocorreu uma falha ao gerar o Pix. Tente novamente.');
     } finally {
       setCarregando(false);
     }
@@ -1074,41 +1068,53 @@ function PicPayPaymentSection({
           </button>
         </div>
       ) : (
-        <div className="space-y-4 text-center animate-in fade-in duration-300">
-          {picpayData.qrcodeBase64 && (
+        <div className="space-y-5 text-center animate-in fade-in duration-300">
+          {/* Exibição do QR Code Imagem */}
+          {picpayData.qrcodeBase64 ? (
             <div className="bg-white p-4 rounded-2xl inline-block shadow-xl border border-neutral-700 mx-auto">
-              <img src={picpayData.qrcodeBase64} alt="QR Code Pix" className="w-48 h-48 mx-auto" />
+              <img src={picpayData.qrcodeBase64} alt="QR Code Pix" className="w-52 h-52 mx-auto" />
+            </div>
+          ) : (
+            <div className="bg-neutral-900 p-6 rounded-2xl border border-neutral-800 space-y-2">
+              <QrCode className="w-12 h-12 text-[#21C25E] mx-auto" />
+              <p className="text-xs text-neutral-300 font-semibold">QR Code Pix gerado com sucesso!</p>
             </div>
           )}
 
+          {/* Exibição do Código Pix Copia e Cola (Chave Pix por extenso) */}
           {picpayData.qrcodeContent && (
-            <div className="space-y-2 text-left">
-              <label className="text-xs font-semibold text-neutral-300">Chave Copia e Cola Pix:</label>
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={picpayData.qrcodeContent}
-                  className="flex-1 bg-neutral-900 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-300 truncate"
-                />
-                <button
-                  type="button"
-                  onClick={handleCopiarChavePix}
-                  className="px-3.5 py-2 bg-[#21C25E] hover:bg-[#1eb356] text-white text-xs font-bold rounded-xl transition-all flex items-center space-x-1.5 shrink-0 cursor-pointer"
-                >
-                  {copiado ? (
-                    <>
-                      <Check className="w-4 h-4" />
-                      <span>Copiado!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4" />
-                      <span>Copiar</span>
-                    </>
-                  )}
-                </button>
+            <div className="space-y-2.5 text-left bg-neutral-900/90 border border-neutral-800 p-4 rounded-2xl">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-white flex items-center space-x-1.5">
+                  <Copy className="w-4 h-4 text-[#21C25E]" />
+                  <span>Código Pix (Copia e Cola):</span>
+                </label>
+                <span className="text-[10px] text-neutral-400 font-mono">Cole no aplicativo do seu Banco</span>
               </div>
+
+              {/* Caixa com o Código Pix por extenso */}
+              <div className="bg-black/60 border border-neutral-800 rounded-xl p-3 font-mono text-[11px] text-emerald-400 break-all select-all leading-relaxed max-h-24 overflow-y-auto">
+                {picpayData.qrcodeContent}
+              </div>
+
+              {/* Botão Prominente de Copiar Código Pix */}
+              <button
+                type="button"
+                onClick={handleCopiarChavePix}
+                className="w-full py-3.5 bg-[#21C25E] hover:bg-[#1eb356] active:scale-[0.99] text-white text-xs md:text-sm font-bold rounded-xl transition-all flex items-center justify-center space-x-2 shrink-0 cursor-pointer shadow-lg shadow-green-500/20"
+              >
+                {copiado ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>Código Pix Copiado com Sucesso!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    <span>Copiar Código Pix (Copia e Cola)</span>
+                  </>
+                )}
+              </button>
             </div>
           )}
 
@@ -1119,14 +1125,14 @@ function PicPayPaymentSection({
               rel="noopener noreferrer"
               className="w-full py-3.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white font-bold text-xs md:text-sm rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer"
             >
-              <span>Abrir App do Pix</span>
+              <span>Abrir App do Banco / Pix</span>
               <ExternalLink className="w-4 h-4 text-[#21C25E]" />
             </a>
           )}
 
           <p className="text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-xl flex items-center justify-center space-x-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
-            <span>Aguardando confirmação do pagamento Pix...</span>
+            <span>Aguardando confirmação do pagamento Pix no seu banco...</span>
           </p>
         </div>
       )}
