@@ -310,15 +310,17 @@ export default function App() {
       try {
         const cleanEmail = email.toLowerCase().trim();
 
-        // Extrai o nome do perfil de redes sociais
+        // Extrai o nome e a foto do perfil de redes sociais (Google / LinkedIn)
         const fullName = userMetadata?.full_name || userMetadata?.name || '';
-        if (fullName) {
-          const names = fullName.trim().split(' ');
+        const avatarUrl = userMetadata?.avatar_url || userMetadata?.picture || userMetadata?.avatar || '';
+        if (fullName || avatarUrl) {
+          const names = fullName ? fullName.trim().split(' ') : [];
           setUserProfile((prev) => ({
             ...prev,
             firstName: names[0] || prev.firstName,
             lastName: names.slice(1).join(' ') || prev.lastName,
             email: cleanEmail,
+            avatar: avatarUrl || prev.avatar,
           }));
         }
 
@@ -671,6 +673,7 @@ export default function App() {
       <WelcomeScreen
         userName={userProfile.firstName || 'Criador'}
         userEmail={userProfile.email}
+        userAvatar={userProfile.avatar}
         onContinue={() => {
           setShowWelcomeScreen(false);
           setCurrentRoute('main');

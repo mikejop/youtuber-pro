@@ -5,10 +5,11 @@ import { CheckCircle2, ArrowRight, ShieldCheck, User } from 'lucide-react';
 interface WelcomeScreenProps {
   userName: string;
   userEmail?: string;
+  userAvatar?: string;
   onContinue: () => void;
 }
 
-export default function WelcomeScreen({ userName, userEmail, onContinue }: WelcomeScreenProps) {
+export default function WelcomeScreen({ userName, userEmail, userAvatar, onContinue }: WelcomeScreenProps) {
   const displayName = userName.trim() ? userName.trim().split(' ')[0] : 'Criador';
 
   // Auto-continuar após 4.5 segundos se o usuário não clicar antes
@@ -44,9 +45,13 @@ export default function WelcomeScreen({ userName, userEmail, onContinue }: Welco
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.4 }}
-              className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#0071e3] to-[#00c7fc] text-white flex items-center justify-center shadow-lg shadow-blue-500/25 border border-white/20"
+              className="w-20 h-20 rounded-2xl overflow-hidden bg-gradient-to-tr from-[#0071e3] to-[#00c7fc] text-white flex items-center justify-center shadow-lg shadow-blue-500/25 border-2 border-white/20"
             >
-              <User className="w-8 h-8" />
+              {userAvatar ? (
+                <img src={userAvatar} alt={displayName} className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-9 h-9" />
+              )}
             </motion.div>
 
             <motion.div
