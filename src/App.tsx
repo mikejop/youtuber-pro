@@ -1322,7 +1322,7 @@ export default function App() {
                   <div className="relative z-10 max-w-4xl mx-auto w-full space-y-6 pt-12">
                     <div className="space-y-4">
                       <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-white leading-tight max-w-3xl">
-                        Seus vídeos podem parecer <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#00c7fc] to-[#30d158]">profissionais</span> mesmo gravando em casa, com pouco espaço e sem comprar equipamentos caros.
+                        Você pode ter um <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#00c7fc] to-[#30d158]">canal profissional</span> sem precisar gastar muito.
                       </h2>
                     </div>
 
