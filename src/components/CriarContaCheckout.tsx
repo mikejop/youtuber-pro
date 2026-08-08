@@ -902,6 +902,7 @@ function EmbeddedPaymentForm({
   addressString,
   appliedCoupon,
   precoFinal,
+  paymentMethodType = 'cartao_credito',
 }: {
   nome: string;
   email: string;
@@ -920,6 +921,7 @@ function EmbeddedPaymentForm({
   addressString: string;
   appliedCoupon: string | null;
   precoFinal: number;
+  paymentMethodType?: string;
 }) {
   const stripe = useStripe();
   const elements = useElements();
