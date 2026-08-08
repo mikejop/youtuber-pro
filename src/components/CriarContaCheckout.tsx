@@ -208,7 +208,7 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
     setTelefone(value);
   };
 
-  // Busca automática de CEP via ViaCEP
+  // Busca automática de CEP via BrasilAPI (CEP v2) com Fallback ViaCEP
   const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawCep = e.target.value.replace(/\D/g, '').substring(0, 8);
     let formattedCep = rawCep;
@@ -220,16 +220,35 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
     if (rawCep.length === 8) {
       setBuscandoCep(true);
       try {
-        const res = await fetch(`https://viacep.com.br/ws/${rawCep}/json/`);
-        const data = await res.json();
-        if (!data.erro) {
-          setLogradouro(data.logradouro || '');
-          setBairro(data.bairro || '');
-          setCidade(data.localidade || '');
-          setEstado(data.uf || '');
+        // 1. Requisição oficial na BrasilAPI v2
+        const res = await fetch(`https://brasilapi.com.br/api/cep/v2/${rawCep}`);
+        if (res.ok) {
+          const data = await res.json();
+          setLogradouro(data.street || data.logradouro || '');
+          setBairro(data.neighborhood || data.bairro || '');
+          setCidade(data.city || data.localidade || '');
+          setEstado(data.state || data.uf || '');
+          setBuscandoCep(false);
+          return;
         }
       } catch (err) {
-        console.warn('Não foi possível buscar o CEP automaticamente:', err);
+        console.warn('⚠️ Exceção BrasilAPI v2, tentando ViaCEP:', err);
+      }
+
+      // 2. Fallback secundário na ViaCEP se a BrasilAPI estiver indisponível
+      try {
+        const resViaCep = await fetch(`https://viacep.com.br/ws/${rawCep}/json/`);
+        if (resViaCep.ok) {
+          const dataVia = await resViaCep.json();
+          if (!dataVia.erro) {
+            setLogradouro(dataVia.logradouro || '');
+            setBairro(dataVia.bairro || '');
+            setCidade(dataVia.localidade || '');
+            setEstado(dataVia.uf || '');
+          }
+        }
+      } catch (fallbackErr) {
+        console.warn('⚠️ Não foi possível buscar o CEP via ViaCEP:', fallbackErr);
       } finally {
         setBuscandoCep(false);
       }
@@ -574,6 +593,13 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                       telefone={telefone}
                       profissao={profissao}
                       cpfCnpj={cpfCnpj}
+                      cep={cep}
+                      logradouro={logradouro}
+                      numero={numero}
+                      complemento={complemento}
+                      bairro={bairro}
+                      cidade={cidade}
+                      estado={estado}
                       addressString={`${logradouro}, ${numero} - ${bairro}, ${cidade}/${estado} - CEP ${cep}`}
                       appliedCoupon={cupomAplicado?.code || null}
                       precoFinal={precoFinal}
@@ -596,6 +622,13 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                   telefone={telefone}
                   profissao={profissao}
                   cpfCnpj={cpfCnpj}
+                  cep={cep}
+                  logradouro={logradouro}
+                  numero={numero}
+                  complemento={complemento}
+                  bairro={bairro}
+                  cidade={cidade}
+                  estado={estado}
                   addressString={`${logradouro}, ${numero} - ${bairro}, ${cidade}/${estado} - CEP ${cep}`}
                   appliedCoupon={cupomAplicado?.code || null}
                   precoFinal={precoFinal}
@@ -611,6 +644,13 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                   telefone={telefone}
                   profissao={profissao}
                   cpfCnpj={cpfCnpj}
+                  cep={cep}
+                  logradouro={logradouro}
+                  numero={numero}
+                  complemento={complemento}
+                  bairro={bairro}
+                  cidade={cidade}
+                  estado={estado}
                   addressString={`${logradouro}, ${numero} - ${bairro}, ${cidade}/${estado} - CEP ${cep}`}
                   appliedCoupon={cupomAplicado?.code || null}
                   precoFinal={precoFinal}
@@ -809,6 +849,13 @@ function EmbeddedPaymentForm({
   telefone,
   profissao,
   cpfCnpj,
+  cep,
+  logradouro,
+  numero,
+  complemento,
+  bairro,
+  cidade,
+  estado,
   addressString,
   appliedCoupon,
   precoFinal,
@@ -820,6 +867,13 @@ function EmbeddedPaymentForm({
   telefone: string;
   profissao: string;
   cpfCnpj: string;
+  cep: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
   addressString: string;
   appliedCoupon: string | null;
   precoFinal: number;
@@ -865,7 +919,7 @@ function EmbeddedPaymentForm({
     setCarregando(true);
 
     try {
-      // 1. Cadastrar usuário no Supabase Auth com metadata completa
+      // 1. Cadastrar usuário no Supabase Auth com metadata completa de cadastro (Sem dados de cartão)
       const { error: authError } = await supabase.auth.signUp({
         email: emailSanitizado,
         password: senha,
@@ -875,6 +929,13 @@ function EmbeddedPaymentForm({
             phone: telefone,
             profession: profissao,
             cpf_cnpj: cpfSanitizado,
+            cep: cep,
+            logradouro: logradouro,
+            numero: numero,
+            complemento: complemento,
+            bairro: bairro,
+            cidade: cidade,
+            estado: estado,
             address: addressString,
             applied_coupon: appliedCoupon,
           },
@@ -909,12 +970,25 @@ function EmbeddedPaymentForm({
         setCarregando(false);
       } else {
         console.log('✅ Pagamento confirmado com sucesso via Stripe API!');
-        // 3. Registrar o status ativo no Supabase (Tabela subscribers) para liberação instantânea
+        // 3. Registrar o status ativo no Supabase (Tabela subscribers) gravando todo o cadastro do aluno
         try {
           await supabase.from('subscribers').upsert(
             {
               email: emailSanitizado,
               status: 'active',
+              full_name: nomeSanitizado,
+              phone: telefone,
+              profession: profissao,
+              cpf_cnpj: cpfSanitizado,
+              cep: cep,
+              logradouro: logradouro,
+              numero: numero,
+              complemento: complemento,
+              bairro: bairro,
+              cidade: cidade,
+              estado: estado,
+              address: addressString,
+              applied_coupon: appliedCoupon,
               updated_at: new Date().toISOString(),
             },
             { onConflict: 'email' }
@@ -976,6 +1050,13 @@ function PicPayPaymentSection({
   telefone,
   profissao,
   cpfCnpj,
+  cep,
+  logradouro,
+  numero,
+  complemento,
+  bairro,
+  cidade,
+  estado,
   addressString,
   appliedCoupon,
   precoFinal,
@@ -987,6 +1068,13 @@ function PicPayPaymentSection({
   telefone: string;
   profissao: string;
   cpfCnpj: string;
+  cep: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
   addressString: string;
   appliedCoupon: string | null;
   precoFinal: number;
@@ -1024,6 +1112,13 @@ function PicPayPaymentSection({
                 phone: telefone,
                 profession: profissao,
                 cpf_cnpj: cpfClean,
+                cep: cep,
+                logradouro: logradouro,
+                numero: numero,
+                complemento: complemento,
+                bairro: bairro,
+                cidade: cidade,
+                estado: estado,
                 address: addressString,
                 applied_coupon: appliedCoupon,
               },
@@ -1202,6 +1297,13 @@ function BoletoPaymentSection({
   telefone,
   profissao,
   cpfCnpj,
+  cep,
+  logradouro,
+  numero,
+  complemento,
+  bairro,
+  cidade,
+  estado,
   addressString,
   appliedCoupon,
   precoFinal,
@@ -1213,6 +1315,13 @@ function BoletoPaymentSection({
   telefone: string;
   profissao: string;
   cpfCnpj: string;
+  cep: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
   addressString: string;
   appliedCoupon: string | null;
   precoFinal: number;
@@ -1252,6 +1361,13 @@ function BoletoPaymentSection({
             phone: telefone,
             profession: profissao,
             cpf_cnpj: cpfClean,
+            cep: cep,
+            logradouro: logradouro,
+            numero: numero,
+            complemento: complemento,
+            bairro: bairro,
+            cidade: cidade,
+            estado: estado,
             address: addressString,
             applied_coupon: appliedCoupon,
           },
