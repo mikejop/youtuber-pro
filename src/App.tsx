@@ -72,6 +72,7 @@ import CriarContaCheckout from './components/CriarContaCheckout';
 import Preloader from './components/Preloader';
 import SupabaseLoginModal from './components/SupabaseLoginModal';
 import StripeCheckoutModal from './components/StripeCheckoutModal';
+import WelcomeScreen from './components/WelcomeScreen';
 import { supabase } from './lib/supabase';
 import { handleStripeCheckout } from './lib/stripe';
 import { sanitizeText, rateLimiter } from './lib/security';
@@ -177,6 +178,7 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [isSupabaseLoginOpen, setIsSupabaseLoginOpen] = useState<boolean>(false);
   const [isPaidUser, setIsPaidUser] = useState<boolean>(false);
+  const [showWelcomeScreen, setShowWelcomeScreen] = useState<boolean>(false);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState<boolean>(false);
   const [checkoutModalInfo, setCheckoutModalInfo] = useState<{ title?: string; description?: string }>({});
   const [copiedChallengeId, setCopiedChallengeId] = useState<string | null>(null);
@@ -304,9 +306,21 @@ export default function App() {
     }
 
     // Helper para verificar status de pagamento (1º no Supabase, 2º Fallback na Stripe API + Auto-sync)
-    const checkSubscriptionStatus = async (userId: string, email: string) => {
+    const checkSubscriptionStatus = async (userId: string, email: string, userMetadata?: any) => {
       try {
         const cleanEmail = email.toLowerCase().trim();
+
+        // Extrai o nome do perfil de redes sociais
+        const fullName = userMetadata?.full_name || userMetadata?.name || '';
+        if (fullName) {
+          const names = fullName.trim().split(' ');
+          setUserProfile((prev) => ({
+            ...prev,
+            firstName: names[0] || prev.firstName,
+            lastName: names.slice(1).join(' ') || prev.lastName,
+            email: cleanEmail,
+          }));
+        }
 
         // PASSO 1: Busca direta no Supabase (Tabelas 'subscribers' e 'pedidos')
         const { data: subData } = await supabase
@@ -325,6 +339,13 @@ export default function App() {
         if (subData?.status === 'active' || pedidoData?.status === 'pago_pix') {
           console.log('✅ Acesso liberado via Supabase Database (subscribers/pedidos):', cleanEmail);
           setIsPaidUser(true);
+          setIsSidebarExpanded(true); // O side menu de quem está logado é MAXIMIZADO por padrão
+
+          const hasSeenWelcome = sessionStorage.getItem('ytp_welcome_seen');
+          if (!hasSeenWelcome) {
+            setShowWelcomeScreen(true);
+            sessionStorage.setItem('ytp_welcome_seen', 'true');
+          }
           return;
         }
 
@@ -341,14 +362,26 @@ export default function App() {
           if (data.paid) {
             console.log('✅ Acesso liberado via Stripe API (sincronizado no Supabase):', cleanEmail);
             setIsPaidUser(true);
+            setIsSidebarExpanded(true); // O side menu de quem está logado é MAXIMIZADO por padrão
+
+            const hasSeenWelcome = sessionStorage.getItem('ytp_welcome_seen');
+            if (!hasSeenWelcome) {
+              setShowWelcomeScreen(true);
+              sessionStorage.setItem('ytp_welcome_seen', 'true');
+            }
             return;
           }
         }
 
+        // Se o usuário logou pela conta social e NÃO pagou -> Cai direto na área de pagamento
+        console.log('⚠️ Usuário autenticado mas sem assinatura ativa. Redirecionando para a área de pagamento...');
         setIsPaidUser(false);
+        setIsSidebarExpanded(true);
+        setCurrentRoute('criar-conta');
       } catch (e) {
         console.warn('⚠️ Erro ao verificar assinatura:', e);
         setIsPaidUser(false);
+        setCurrentRoute('criar-conta');
       }
     };
 
@@ -356,27 +389,31 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setIsLoggedIn(true);
+        setIsSidebarExpanded(true); // O side menu de quem está logado é MAXIMIZADO
         localStorage.setItem(LOGIN_KEY, 'true');
         if (session.user.email) {
           setUserProfile(prev => ({ ...prev, email: session.user.email || prev.email }));
-          checkSubscriptionStatus(session.user.id, session.user.email);
+          checkSubscriptionStatus(session.user.id, session.user.email, session.user.user_metadata);
         }
       } else {
         setIsPaidUser(false);
+        setIsSidebarExpanded(false); // Visitantes/não logados ficam com o menu colapsado
       }
     });
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         setIsLoggedIn(true);
+        setIsSidebarExpanded(true); // O side menu de quem está logado é MAXIMIZADO
         localStorage.setItem(LOGIN_KEY, 'true');
         if (session.user.email) {
           setUserProfile(prev => ({ ...prev, email: session.user.email || prev.email }));
-          checkSubscriptionStatus(session.user.id, session.user.email);
+          checkSubscriptionStatus(session.user.id, session.user.email, session.user.user_metadata);
         }
       } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false);
         setIsPaidUser(false);
+        setIsSidebarExpanded(false); // Visitantes/não logados ficam com o menu colapsado
         localStorage.setItem(LOGIN_KEY, 'false');
       }
     });
@@ -626,6 +663,20 @@ export default function App() {
 
   if (currentRoute === 'esqueci-senha') {
     return <EsqueciSenha onBackToLogin={() => setCurrentRoute('main')} />;
+  }
+
+  // Se a tela de boas-vindas estiver ativa (após o pagamento), exibe a apresentação com o nome
+  if (showWelcomeScreen) {
+    return (
+      <WelcomeScreen
+        userName={userProfile.firstName || 'Criador'}
+        userEmail={userProfile.email}
+        onContinue={() => {
+          setShowWelcomeScreen(false);
+          setCurrentRoute('main');
+        }}
+      />
+    );
   }
 
   if (currentRoute === 'criar-conta') {
