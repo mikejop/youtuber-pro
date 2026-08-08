@@ -21,6 +21,7 @@ interface CriarContaCheckoutProps {
 export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutProps) {
   // Forma de Pagamento Selecionada ('card' | 'pix_picpay' | 'boleto')
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'pix_picpay' | 'boleto'>('card');
+  const [cardType, setCardType] = useState<'credito' | 'debito'>('credito');
 
   // Form State
   const [nome, setNome] = useState('');
@@ -568,49 +569,91 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
 
               {/* Renderização Condicional da Opção Selecionada */}
               {paymentMethod === 'card' && (
-                clientSecret ? (
-                  <Elements
-                    stripe={stripePromise}
-                    options={{
-                      clientSecret,
-                      appearance: {
-                        theme: 'night',
-                        variables: {
-                          colorPrimary: '#0071e3',
-                          colorBackground: '#0a0a0a',
-                          colorText: '#ffffff',
-                          borderRadius: '16px',
-                          colorDanger: '#ff453a',
-                        },
-                      },
-                    }}
-                  >
-                    <EmbeddedPaymentForm
-                      nome={nome}
-                      email={email}
-                      senha={senha}
-                      confirmarSenha={confirmarSenha}
-                      telefone={telefone}
-                      profissao={profissao}
-                      cpfCnpj={cpfCnpj}
-                      cep={cep}
-                      logradouro={logradouro}
-                      numero={numero}
-                      complemento={complemento}
-                      bairro={bairro}
-                      cidade={cidade}
-                      estado={estado}
-                      addressString={`${logradouro}, ${numero} - ${bairro}, ${cidade}/${estado} - CEP ${cep}`}
-                      appliedCoupon={cupomAplicado?.code || null}
-                      precoFinal={precoFinal}
-                    />
-                  </Elements>
-                ) : (
-                  <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 text-center space-y-3">
-                    <div className="w-6 h-6 border-2 border-[#0071e3] border-t-transparent rounded-full animate-spin mx-auto" />
-                    <p className="text-xs text-neutral-400">Carregando formulário seguro de cartão...</p>
+                <div className="space-y-4">
+                  {/* Switch para Escolher Crédito ou Débito */}
+                  <div className="bg-neutral-950 border border-neutral-800 p-3.5 rounded-2xl space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <CreditCard className="w-4 h-4 text-[#0071e3]" />
+                        <span className="text-xs font-bold text-white">Modalidade do Cartão:</span>
+                      </div>
+                      <div className="flex bg-neutral-900 border border-neutral-800 rounded-xl p-1 space-x-1">
+                        <button
+                          type="button"
+                          onClick={() => setCardType('credito')}
+                          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            cardType === 'credito'
+                              ? 'bg-[#0071e3] text-white shadow-md shadow-blue-500/20'
+                              : 'text-neutral-400 hover:text-white'
+                          }`}
+                        >
+                          Crédito
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCardType('debito')}
+                          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            cardType === 'debito'
+                              ? 'bg-[#0071e3] text-white shadow-md shadow-blue-500/20'
+                              : 'text-neutral-400 hover:text-white'
+                          }`}
+                        >
+                          Débito
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-neutral-400 leading-relaxed">
+                      {cardType === 'credito'
+                        ? 'Cobrança na função Crédito com liberação instantânea.'
+                        : 'Cobrança na função Débito à vista com verificação e autenticação 3D Secure via Stripe.'}
+                    </p>
                   </div>
-                )
+
+                  {clientSecret ? (
+                    <Elements
+                      stripe={stripePromise}
+                      options={{
+                        clientSecret,
+                        appearance: {
+                          theme: 'night',
+                          variables: {
+                            colorPrimary: '#0071e3',
+                            colorBackground: '#0a0a0a',
+                            colorText: '#ffffff',
+                            borderRadius: '16px',
+                            colorDanger: '#ff453a',
+                          },
+                        },
+                      }}
+                    >
+                      <EmbeddedPaymentForm
+                        nome={nome}
+                        email={email}
+                        senha={senha}
+                        confirmarSenha={confirmarSenha}
+                        telefone={telefone}
+                        profissao={profissao}
+                        cpfCnpj={cpfCnpj}
+                        cep={cep}
+                        logradouro={logradouro}
+                        numero={numero}
+                        complemento={complemento}
+                        bairro={bairro}
+                        cidade={cidade}
+                        estado={estado}
+                        addressString={`${logradouro}, ${numero} - ${bairro}, ${cidade}/${estado} - CEP ${cep}`}
+                        appliedCoupon={cupomAplicado?.code || null}
+                        precoFinal={precoFinal}
+                        paymentMethodType={cardType === 'credito' ? 'cartao_credito' : 'cartao_debito'}
+                      />
+                    </Elements>
+                  ) : (
+                    <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 text-center space-y-3">
+                      <div className="w-6 h-6 border-2 border-[#0071e3] border-t-transparent rounded-full animate-spin mx-auto" />
+                      <p className="text-xs text-neutral-400">Carregando formulário seguro de cartão...</p>
+                    </div>
+                  )}
+                </div>
               )}
 
               {paymentMethod === 'pix_picpay' && (
@@ -938,6 +981,7 @@ function EmbeddedPaymentForm({
             estado: estado,
             address: addressString,
             applied_coupon: appliedCoupon,
+            payment_method: paymentMethodType,
           },
         },
       });
@@ -970,7 +1014,7 @@ function EmbeddedPaymentForm({
         setCarregando(false);
       } else {
         console.log('✅ Pagamento confirmado com sucesso via Stripe API!');
-        // 3. Registrar o status ativo no Supabase (Tabela subscribers) gravando todo o cadastro do aluno
+        // 3. Registrar o status ativo no Supabase (Tabela subscribers e pedidos) gravando todo o cadastro + forma de pagamento
         try {
           await supabase.from('subscribers').upsert(
             {
@@ -989,12 +1033,25 @@ function EmbeddedPaymentForm({
               estado: estado,
               address: addressString,
               applied_coupon: appliedCoupon,
+              payment_method: paymentMethodType,
               updated_at: new Date().toISOString(),
             },
             { onConflict: 'email' }
           );
+
+          await supabase.from('pedidos').upsert(
+            {
+              reference_id: `CARD_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+              cliente_email: emailSanitizado,
+              valor: precoFinal,
+              status: 'pago_card',
+              payment_method: paymentMethodType,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'reference_id' }
+          );
         } catch (subErr) {
-          console.warn('Nota registro subscribers:', subErr);
+          console.warn('Nota registro subscribers/pedidos:', subErr);
         }
         window.location.href = '/?checkout=success';
       }
