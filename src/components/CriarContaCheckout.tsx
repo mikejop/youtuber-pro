@@ -7,7 +7,7 @@ import { rateLimiter, sanitizeText } from '../lib/security';
 import { 
   User, Mail, Lock, Phone, Briefcase, FileText, MapPin, 
   ArrowLeft, CreditCard, ShieldCheck, CheckCircle2, AlertCircle,
-  Tag, Trash2, Sparkles, QrCode, Barcode, Copy, ExternalLink, Check
+  Tag, Trash2, QrCode, Barcode, Copy, ExternalLink, Check
 } from 'lucide-react';
 import { createPicPayPaymentServer } from '../lib/picpay';
 

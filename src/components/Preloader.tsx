@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, Sparkles } from 'lucide-react';
+import { Play } from 'lucide-react';
 
 export default function Preloader() {
   const [isLoading, setIsLoading] = useState(true);
@@ -89,7 +89,6 @@ export default function Preloader() {
               </div>
               <div className="flex items-center justify-between text-[11px] text-neutral-500 font-mono">
                 <span className="flex items-center space-x-1">
-                  <Sparkles className="w-3 h-3 text-[#0071e3]" />
                   <span>Inicializando visual...</span>
                 </span>
                 <span>{progress}%</span>

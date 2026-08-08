@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Folder, FolderOpen, FileText, ChevronRight, ChevronDown, ChevronLeft,
-  Play, Clock, ArrowRight, Sparkles, CheckCircle2, Circle, Lock, 
+  Play, Clock, ArrowRight, Zap, CheckCircle2, Circle, Lock, 
   PanelLeftClose, PanelLeft, X, Search, Menu, Target, Wrench, 
   Image as ImageIcon, Shield, Star, GraduationCap, RefreshCw, Layers, Check, Copy, AlertTriangle, PlayCircle, BookOpen, Volume2,
   Compass, Mic, Camera, Sun, Video, Scissors, Palette, Activity, Plus, Upload, User, LogIn, LogOut, Mail, Phone, Eye, EyeOff, Trash2
@@ -1657,7 +1657,7 @@ export default function App() {
                   className="space-y-4"
                 >
                   <div className="inline-flex items-center gap-1.5 rounded-full bg-neutral-200/50 border border-neutral-300/40 px-3 py-1 text-xs font-semibold text-neutral-600 uppercase tracking-widest">
-                    <Sparkles size={11} className="text-[#0071e3]" /> EDIÇÃO DO CRIADOR PRO
+                    EDIÇÃO DO CRIADOR PRO
                   </div>
                   
                   <div className="space-y-1">
@@ -1743,7 +1743,7 @@ export default function App() {
                     <div className="md:col-span-4 bg-white rounded-[18px] border border-neutral-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.02)] hover:scale-[1.01] transition-transform duration-300 p-6 flex flex-col justify-between min-h-[220px]">
                       <div className="space-y-2">
                         <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 shadow-sm">
-                          <Sparkles size={16} />
+                          <Zap size={16} />
                         </div>
                         <h4 className="text-sm font-bold text-neutral-900">Teoria dos Anzóis</h4>
                         <p className="text-xs text-neutral-500 leading-relaxed">Gancho inegável nos primeiros 15 segundos para aumentar a retenção.</p>

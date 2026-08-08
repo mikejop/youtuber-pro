@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { handleStripeCheckout } from '../lib/stripe';
-import { Lock, ShieldAlert, Sparkles, LogOut, ArrowRight, CreditCard } from 'lucide-react';
+import { Lock, ShieldAlert, CheckCircle2, LogOut, ArrowRight, CreditCard } from 'lucide-react';
 
 interface RequireSubscriptionProps {
   children: React.ReactNode;
@@ -120,15 +120,15 @@ export default function RequireSubscription({ children, onOpenLoginModal }: Requ
         {/* Card de Benefícios Rápidos */}
         <div className="bg-neutral-950/80 border border-neutral-800 rounded-2xl p-4 text-left space-y-2 text-xs text-neutral-300">
           <div className="flex items-center space-x-2">
-            <Sparkles className="w-4 h-4 text-[#0071e3] shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-[#0071e3] shrink-0" />
             <span>Acesso vitalício ao Playbook Visual e Ferramentas 3D</span>
           </div>
           <div className="flex items-center space-x-2">
-            <Sparkles className="w-4 h-4 text-[#0071e3] shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-[#0071e3] shrink-0" />
             <span>Simuladores de Iluminação, CTR e Color Grading</span>
           </div>
           <div className="flex items-center space-x-2">
-            <Sparkles className="w-4 h-4 text-[#0071e3] shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-[#0071e3] shrink-0" />
             <span>Garantia incondicional de devolução em 7 dias</span>
           </div>
         </div>

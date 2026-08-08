@@ -1,7 +1,7 @@
 import React from 'react';
 import { handleStripeCheckout } from '../lib/stripe';
 import { rateLimiter } from '../lib/security';
-import { X, Lock, Check, Sparkles, ShieldCheck, CreditCard, ArrowRight } from 'lucide-react';
+import { X, Lock, Check, ShieldCheck, CreditCard, ArrowRight } from 'lucide-react';
 
 interface StripeCheckoutModalProps {
   isOpen: boolean;
