@@ -518,14 +518,64 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
               </div>
             </div>
 
-            {/* SEÇÃO 4: DADOS E FORMA DE PAGAMENTO */}
-            <div className="space-y-4 pt-4 border-t border-neutral-800/80">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-neutral-300 flex items-center space-x-2.5">
+            {/* Fim da Seção de Endereço */}
+          </div>
+        </div>
+
+        {/* Lado Direito (lg:col-span-6): Resumo do Pedido, Preço & FORMA DE PAGAMENTO (Cartão, Pix, Boleto) */}
+        <div className="lg:col-span-6 space-y-6 flex flex-col justify-between">
+          
+          <div className="bg-neutral-900/90 border border-neutral-800 rounded-[32px] p-6 md:p-8 backdrop-blur-2xl shadow-2xl space-y-6">
+            
+            <div className="border-b border-neutral-800 pb-4">
+              <span className="text-xs font-bold text-[#00c7fc] uppercase tracking-widest block mb-1">RESUMO DO PEDIDO</span>
+              <h2 className="text-2xl font-extrabold text-white">YouTuber Pro</h2>
+              <p className="text-xs md:text-sm text-neutral-400">Um Produto Dojo Academy</p>
+            </div>
+
+            {/* Resumo de Valores */}
+            <div className="space-y-3.5 text-xs md:text-sm text-neutral-300">
+              <div className="flex items-center justify-between">
+                <span>Playbook Visual</span>
+                <span className="font-bold text-white">Incluído</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>1 Masterclass exclusivo sobre iluminação para YouTubers</span>
+                <span className="font-bold text-white">Incluído</span>
+              </div>
+
+              {cupomAplicado && descontoCalculado > 0 && (
+                <div className="flex items-center justify-between text-emerald-400 font-semibold border-t border-neutral-800/80 pt-2.5">
+                  <span>Desconto ({cupomAplicado.code})</span>
+                  <span>- R$ {descontoCalculado.toFixed(2).replace('.', ',')}</span>
+                </div>
+              )}
+
+              {/* VALOR FINAL EXIBIDO NO TOPO DO RESUMO */}
+              <div className="flex items-center justify-between border-t border-neutral-800 pt-4">
+                <span className="text-sm md:text-base font-bold text-white">Valor Final</span>
+                <div className="text-right">
+                  <div className="flex items-baseline space-x-2 justify-end">
+                    {descontoCalculado > 0 && (
+                      <span className="text-xs text-neutral-500 line-through">R$ {BASE_PRICE.toFixed(2).replace('.', ',')}</span>
+                    )}
+                    <span className="text-2xl md:text-3xl font-black text-white block">
+                      R$ {precoFinal.toFixed(2).replace('.', ',')}
+                    </span>
+                  </div>
+                  <span className="text-xs text-emerald-400 font-bold">Acesso Vitalício sem Mensalidade</span>
+                </div>
+              </div>
+            </div>
+
+            {/* SEÇÃO DE FORMA DE PAGAMENTO COLOCADA DENTRO DESTE MESMO BLOCO (ABAIXO DO PREÇO) */}
+            <div className="space-y-4 pt-4 border-t border-neutral-800">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-300 flex items-center space-x-2">
                 <CreditCard className="w-4 h-4 text-[#0071e3]" />
                 <span>Forma de Pagamento</span>
               </h3>
 
-              {/* Botões de Seleção de Pagamento Lado a Lado (Cartão, Pix via PicPay, Boleto) */}
+              {/* Botões de Seleção de Pagamento Lado a Lado (Cartão, Pix, Boleto) */}
               <div className="grid grid-cols-3 gap-2.5 p-1 bg-neutral-950 border border-neutral-800 rounded-2xl">
                 <button
                   type="button"
@@ -698,58 +748,7 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
                   precoFinal={precoFinal}
                 />
               )}
-            </div>
-
-          </div>
-        </div>
-
-        {/* Lado Direito: Resumo do Pedido, Preço & Choice Chip Cupom de Desconto com Animação */}
-        <div className="lg:col-span-5 space-y-6 flex flex-col justify-between">
-          
-          <div className="bg-neutral-900/90 border border-neutral-800 rounded-[32px] p-6 md:p-8 backdrop-blur-2xl shadow-2xl space-y-6">
-            
-            <div className="border-b border-neutral-800 pb-4">
-              <span className="text-xs font-bold text-[#00c7fc] uppercase tracking-widest block mb-1">RESUMO DO PEDIDO</span>
-              <h2 className="text-2xl font-extrabold text-white">YouTuber Pro</h2>
-              <p className="text-xs md:text-sm text-neutral-400">Um Produto Dojo Academy</p>
-            </div>
-
-            {/* Resumo de Valores */}
-            <div className="space-y-3.5 text-xs md:text-sm text-neutral-300">
-              <div className="flex items-center justify-between">
-                <span>Playbook Visual</span>
-                <span className="font-bold text-white">Incluído</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>1 Masterclass exclusivo sobre iluminação para YouTubers</span>
-                <span className="font-bold text-white">Incluído</span>
-              </div>
-
-              {cupomAplicado && descontoCalculado > 0 && (
-                <div className="flex items-center justify-between text-emerald-400 font-semibold border-t border-neutral-800/80 pt-2.5">
-                  <span>Desconto ({cupomAplicado.code})</span>
-                  <span>- R$ {descontoCalculado.toFixed(2).replace('.', ',')}</span>
-                </div>
-              )}
-
-              {/* VALOR FINAL EXIBIDO NO TOPO DO RESUMO */}
-              <div className="flex items-center justify-between border-t border-neutral-800 pt-4">
-                <span className="text-sm md:text-base font-bold text-white">Valor Final</span>
-                <div className="text-right">
-                  <div className="flex items-baseline space-x-2 justify-end">
-                    {descontoCalculado > 0 && (
-                      <span className="text-xs text-neutral-500 line-through">R$ {BASE_PRICE.toFixed(2).replace('.', ',')}</span>
-                    )}
-                    <span className="text-2xl md:text-3xl font-black text-white block">
-                      R$ {precoFinal.toFixed(2).replace('.', ',')}
-                    </span>
-                  </div>
-                  <span className="text-xs text-emerald-400 font-bold">Acesso Vitalício sem Mensalidade</span>
-                </div>
-              </div>
-            </div>
-
-            {/* SEÇÃO DE CUPOM DE DESCONTO ABAIXO DO PREÇO COM CHOICE CHIP & ANIMAÇÃO */}
+            {/* SEÇÃO DE CUPOM DE DESCONTO ABAIXO DO PAGAMENTO */}
             <div className="pt-2">
               {!mostrarCampoCupom && !cupomAplicado ? (
                 <button
