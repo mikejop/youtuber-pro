@@ -521,8 +521,9 @@ export default function CriarContaCheckout({ onBackToMain }: CriarContaCheckoutP
             {/* Fim da Seção de Endereço */}
           </div>
         </div>
+      </div>
 
-        {/* Lado Direito (lg:col-span-6): Resumo do Pedido, Preço & FORMA DE PAGAMENTO (Cartão, Pix, Boleto) */}
+      {/* Lado Direito (lg:col-span-6): Resumo do Pedido, Preço & FORMA DE PAGAMENTO (Cartão, Pix, Boleto) */}
         <div className="lg:col-span-6 space-y-6 flex flex-col justify-between">
           
           <div className="bg-neutral-900/90 border border-neutral-800 rounded-[32px] p-6 md:p-8 backdrop-blur-2xl shadow-2xl space-y-6">
